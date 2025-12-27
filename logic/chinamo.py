@@ -1,20 +1,45 @@
-code = 1
 
+code_list = []
 class Chinamo:
+    # Variable de CLASE - compartida entre todas las instancias
+    products = {}
     
     def __init__(self,seller_name):
         self.seller_name = seller_name
-        self.products = {}
+        
 
     
-    def add_product(self,producto, price):
-        global code #TODO To fix this method
-        self.products[f'ATB{code}'] = {
-            'seller' : self.seller_name,
-            'nombre' : [producto],
-            'precio' : price
-        }
-        code += 1
+    def add_product(self,product, price):
+        
+        seller_code = None
+        for code_key, seller_data in self.products.items():
+            print(seller_data['seller'])
+            if seller_data['seller'] == self.seller_name:
+                seller_code = code_key
+        
+        if seller_code:
+            
+            self.products[seller_code]['products'].append({
+                'name': product,
+                'price_product': price
+            })
+        
+        
+
+
+        else:
+            code = f'ATB{len(code_list)+1}'
+            self.products[code] = {
+                    'seller' : self.seller_name,
+                    'products': [{
+                        'name': product,
+                        'price_product': price
+                    }]
+                }
+            code_list.append('code')
+
+        
+        
         
         print(self.products)
 
