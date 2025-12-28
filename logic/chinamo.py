@@ -3,7 +3,7 @@ code_list = []
 class Chinamo:
     # Variable de CLASE - compartida entre todas las instancias
     products = {}
-    
+  #TODO Eliminar prints  
     def __init__(self,seller_name):
         self.seller_name = seller_name
         
@@ -55,18 +55,13 @@ class Chinamo:
              return finded
          
 
+# test1 = Chinamo('Marcos') Esto es código de prueba entonces si lo llego a usar despues
+# test1.add_product('Arroz con leche', 500)
+# test1.add_product('arroz con pollo', 1500)
+# test1.remove_product('arroz con pollo')
+# test1.remove_product('arroz con pollo')
 
 
-    def get_total_stock(self):
-        pass
-
-test1 = Chinamo('Marcos')
-test1.add_product('Arroz con leche', 500)
-test1.add_product('arroz con pollo', 1500)
-test1.remove_product('arroz con pollo')
-test1.remove_product('arroz con pollo')
-
-
-productos = Chinamo.products
-for code, product in productos.items():
-    print(f'{product}\n')
+# productos = Chinamo.products
+# for code, product in productos.items():
+#     print(f'{product}\n')
