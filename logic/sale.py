@@ -34,7 +34,7 @@ class Sale():
         
 
 # #pruebas
-# items = [
+# items = [p
 #     {"name": "Empanada", "qty": 3, "unit_price": 500},
 #     {"name": "Refresco", "qty": 3, "unit_price": 800}
 # ]
