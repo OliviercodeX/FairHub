@@ -1,5 +1,6 @@
-from chinamo import *
-from sale import *
+from chinamo import Chinamo
+from sale import Sale
+from utils.file_handler import *
 class Fair_manager():
     def __init__(self):
         self.chinamos = {}
@@ -13,14 +14,15 @@ class Fair_manager():
         return self.chinamos
 
     def register_sale(self, chinamo_id, items):
-
         data_sale = Sale.to_dict(chinamo_id, items)
         
 
     def get_chinamo_income(self, chinamo_id):
         total_income = 0
-        pass
+        chinamo_max_revenue = Sale.get_income_chinamo(chinamo_id)
 
+
+#TODO solucionar problema del json
     def save_data():
         pass
 
