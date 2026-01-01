@@ -33,17 +33,17 @@ class Sale():
         return f' el total del cliente es de {total_income}'
         
 
-#pruebas
-items = [
-    {"name": "Empanada", "qty": 3, "unit_price": 500},
-    {"name": "Refresco", "qty": 3, "unit_price": 800}
-]
+# #pruebas
+# items = [
+#     {"name": "Empanada", "qty": 3, "unit_price": 500},
+#     {"name": "Refresco", "qty": 3, "unit_price": 800}
+# ]
 
-if __name__ == '__main__':
-    sale = Sale("ATB1", items)
-    sala2 = Sale("ATB2", items)
-    sale.data_history = [sale.to_dict(), sala2.to_dict()]
-    print(sale.get_income_chinamo('ATB2'))
+# if __name__ == '__main__': tests files
+#     sale = Sale("ATB1", items)
+#     sala2 = Sale("ATB2", items)
+#     sale.data_history = [sale.to_dict(), sala2.to_dict()]
+#     print(sale.get_income_chinamo('ATB2'))
 
-    sale_dict = sale.to_dict()
+#     sale_dict = sale.to_dict()
  
