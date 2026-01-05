@@ -24,6 +24,7 @@ text_welcome = font_text.render('Bienvenido al sistema de gestión de la feria I
                                 True, (0,0,0))
 text_center = text_welcome.get_rect(topright=(1200,100))
 
+input_text = pygame.start_text_input()
 while running:
     # poll for events
     # pygame.QUIT event means the user clicked X to close your window
@@ -44,5 +45,7 @@ while running:
     pygame.display.flip()
 
     clock.tick(60)  # limits FPS to 60
+    
+
 
 pygame.quit()
