@@ -4,6 +4,7 @@ from ui import constants
 class Menu():
     def __init__(self):
         pygame.init()
+        
         self.screen = pygame.display.set_mode((constants.WIDTH,constants.HEIGHT))
         pygame.display.set_caption("Mi app")
 

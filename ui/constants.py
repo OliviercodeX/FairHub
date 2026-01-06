@@ -1,5 +1,7 @@
 #Constantes
-
+import pygame
+pygame.init()
+pygame.font.init()
 #COLORES
 # Colores básicos
 WHITE       = (255, 255, 255)
@@ -26,3 +28,10 @@ TEXT_SECONDARY    = (180, 180, 180)
 
 #Tamaño de pantalla
 WIDTH, HEIGHT = 800, 600
+
+#Fuentes y tamaños
+FONT_SMALL  = pygame.font.Font(None, 18)
+FONT_NORMAL = pygame.font.Font(None, 22)
+FONT_MEDIUM = pygame.font.Font(None, 28)
+FONT_LARGE  = pygame.font.Font(None, 36)
+FONT_TITLE  = pygame.font.Font(None, 48)
