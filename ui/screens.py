@@ -53,7 +53,8 @@ class Splash():
         
         #correr botones
         pygame.draw.rect(surface, GREEN, button_start)
-        surface.blit(text_button_start,(button_start.x + 60 , button_start.y + 10))
+        txt_btn_start_rect = text_button_start.get_rect(center=button_start.center)
+        surface.blit(text_button_start, txt_btn_start_rect)
 
 
 class Main_menu_screen():
@@ -78,7 +79,40 @@ class Main_menu_screen():
         title_text = FONT_TITLE.render('Menu de gestión', True, (WHITE))
         surface.blit(title_text, (self.cor_x, self.cor_y))
 
-        #d
+        #crear serie de botones
+        sell_button = pygame.Rect(self.cor_x + 50, self.cor_y + 90, 200, 50)
+        create_chinamo_button = pygame.Rect(self.cor_x + 50, self.cor_y + 160, 200, 50)
+        history_button = pygame.Rect(self.cor_x + 50, self.cor_y + 230, 200, 50)
+        credits_button = pygame.Rect(self.cor_x + 50, self.cor_y + 300, 200, 50)
+        exit_button = pygame.Rect(self.cor_x + 50, self.cor_y + 370, 200, 50)
+
+        #dibujar botones
+        pygame.draw.rect(surface, GREEN, sell_button)
+        pygame.draw.rect(surface, YELLOW, create_chinamo_button)
+        pygame.draw.rect(surface, ORANGE, history_button)
+        pygame.draw.rect(surface, PURPLE, credits_button)
+        pygame.draw.rect(surface, RED, exit_button)
+        
+        #crear texto botones
+        sell_button_txt = FONT_MEDIUM.render('Ventas', True, (WHITE))
+        create_chinamo_button_txt = FONT_MEDIUM.render('Crear Chinamo', True, (WHITE))
+        history_button_txt = FONT_MEDIUM.render('Historial', True, (WHITE)) 
+        credits_button_txt = FONT_MEDIUM.render('Creditos', True, (WHITE))  
+        exit_button_txt = FONT_MEDIUM.render('Salir', True, (WHITE))    
+
+
+        #dibujar texto botones (centrado)
+        sell_txt_rect = sell_button_txt.get_rect(center=sell_button.center)
+        create_ch_txt_rect = create_chinamo_button_txt.get_rect(center=create_chinamo_button.center)
+        history_txt_rect = history_button_txt.get_rect(center=history_button.center)
+        credits_txt_rect = credits_button_txt.get_rect(center=credits_button.center)
+        exit_txt_rect = exit_button_txt.get_rect(center=exit_button.center)
+
+        surface.blit(sell_button_txt, sell_txt_rect)
+        surface.blit(create_chinamo_button_txt, create_ch_txt_rect)
+        surface.blit(history_button_txt, history_txt_rect)
+        surface.blit(credits_button_txt, credits_txt_rect)
+        surface.blit(exit_button_txt, exit_txt_rect)
 
 class Buy_screen():
     def __init__(self):

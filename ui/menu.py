@@ -6,7 +6,7 @@ class Menu():
         pygame.init()
         
         self.screen = pygame.display.set_mode((constants.WIDTH,constants.HEIGHT))
-        pygame.display.set_caption("Mi app")
+        pygame.display.set_caption("FairHub")
 
         self.clock = pygame.time.Clock()
         self.running = True
@@ -28,7 +28,7 @@ class Menu():
                     self.current_screen.handle_event(event)
 
             if self.current_screen:
-                self.current_screen.update()
+                self.current_screen.update() #TODO investigar proposito de estos dos
                 self.current_screen.draw(self.screen)
 
             pygame.display.flip()
