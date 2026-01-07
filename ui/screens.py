@@ -59,8 +59,10 @@ class Splash():
 class Main_menu_screen():
     def __init__(self, app):
         self.app = app
-        self.color = YELLOW
-
+        self.color = CYAN
+        self.cor_x = 250
+        self.cor_y = 20
+    
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
@@ -71,6 +73,10 @@ class Main_menu_screen():
 
     def draw(self, surface):
         surface.fill(self.color)
+
+        #dibujar titulo ventana de principal
+        title_text = FONT_TITLE.render('Menu de gestión', True, (WHITE))
+        surface.blit(title_text, (self.cor_x, self.cor_y))
 
         #d
 
