@@ -68,11 +68,15 @@ class Main_menu_screen():
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 self.app.change_screen(Splash(self.app))
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+                if exit_button.collidepoint(event.pos):
+                    self.app.running = False
 
     def update(self):
         pass
 
     def draw(self, surface):
+        global exit_button
         surface.fill(self.color)
 
         #dibujar titulo ventana de principal
