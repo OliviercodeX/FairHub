@@ -71,12 +71,23 @@ class Main_menu_screen():
         elif event.type == pygame.MOUSEBUTTONDOWN:
                 if exit_button.collidepoint(event.pos):
                     self.app.running = False
-
+                if sell_button.collidepoint(event.pos):
+                    self.app.change_screen(Buy_screen(self.app))
+                if create_chinamo_button.collidepoint(event.pos):
+                    self.app.change_screen(Create_chinamo_screen(self.app))
+                if history_button.collidepoint(event.pos):
+                    self.app.change_screen(History_screen(self.app))
+                if credits_button.collidepoint(event.pos):
+                    self.app.change_screen(Credits_screen(self.app))
     def update(self):
         pass
 
     def draw(self, surface):
         global exit_button
+        global sell_button
+        global create_chinamo_button
+        global history_button
+        global credits_button
         surface.fill(self.color)
 
         #dibujar titulo ventana de principal
@@ -119,45 +130,93 @@ class Main_menu_screen():
         surface.blit(exit_button_txt, exit_txt_rect)
 
 class Buy_screen():
-    def __init__(self):
-        pass
-
-    def handle_event(self):
-        pass
+    def __init__(self, app):
+        self.app = app
+        self.color = GREEN
+        self.cor_x = 250
+        self.cor_y = 20
+        
+    def handle_event(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                self.app.change_screen(Main_menu_screen(self.app))
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+                if exit_button.collidepoint(event.pos):
+                    self.app.running = False
 
     def update(self):
         pass
 
-    def draw(self):
-        pass
+    def draw(self, surface):
+        surface.fill(self.color)
 
 class History_screen():
-    def __init__(self):
-        pass
+    def __init__(self, app):
+        self.app = app
+        self.color = ORANGE
+        self.cor_x = 250
+        self.cor_y = 20
         
-    def handle_event(self):
-        pass
+        
+    def handle_event(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                self.app.change_screen(Main_menu_screen(self.app))
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+                if exit_button.collidepoint(event.pos):
+                    self.app.running = False
+
 
     def update(self):
         pass
 
-    def draw(self):
-        pass
+    def draw(self, surface):
+        surface.fill(self.color)
+        
 
 class Credits_screen():
-    def __init__(self):
-        pass
+    def __init__(self, app):
+        self.app = app
+        self.color = PURPLE
+        self.cor_x = 250
+        self.cor_y = 20
     
-    def handle_event(self):
+    def handle_event(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                self.app.change_screen(Main_menu_screen(self.app))
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+                if exit_button.collidepoint(event.pos):
+                    self.app.running = False
+
+    def update(self):
+        
         pass
+
+    def draw(self, surface):
+        surface.fill(self.color)
+
+
+class Create_chinamo_screen():
+    def __init__(self, app):
+        self.app = app
+        self.color = YELLOW
+        self.cor_x = 250
+        self.cor_y = 20
+        
+    def handle_event(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                self.app.change_screen(Main_menu_screen(self.app))
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+                if exit_button.collidepoint(event.pos):
+                    self.app.running = False
 
     def update(self):
         pass
 
-    def draw(self):
-        pass
-
-
+    def draw(self, surface):
+        surface.fill(self.color)
 
 
 
