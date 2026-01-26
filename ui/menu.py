@@ -1,4 +1,5 @@
 import pygame
+import pygame_gui
 from ui.screens import Splash, Main_menu_screen, Buy_screen, History_screen, Credits_screen
 from ui import constants
 class Menu():
@@ -7,6 +8,7 @@ class Menu():
         
         self.screen = pygame.display.set_mode((constants.WIDTH,constants.HEIGHT))
         pygame.display.set_caption("FairHub")
+        self.manager1 = pygame_gui.UIManager((800, 600))
 
         self.clock = pygame.time.Clock()
         self.running = True

@@ -1,6 +1,7 @@
-import pygame
+import pygame, pygame_gui
 from pathlib import Path
 from ui.constants import *
+
 class Splash():
     def __init__(self, app):
         self.app = app
@@ -130,25 +131,96 @@ class Main_menu_screen():
         surface.blit(exit_button_txt, exit_txt_rect)
 
 class Buy_screen():
-    def __init__(self, app):
+    def __init__(self, app, x=100, y=100, w=200, h=30, opciones=None):
         self.app = app
         self.color = GREEN
         self.cor_x = 250
         self.cor_y = 20
+        self.rect = pygame.Rect(x, y, w, h)
+        self.opciones = opciones if opciones is not None else ["Opción 1", "Opción 2", "Opción 3"]
+        self.color_base = (200, 200, 200)
+        self.color_hover = (170, 170, 170)
+        self.abierto = False
+        self.seleccionada = "Seleccionar..."
+        
+        # Botón de salida/volver
+        self.exit_button = pygame.Rect(self.cor_x + 50, self.cor_y + 370, 200, 50)
+
         
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 self.app.change_screen(Main_menu_screen(self.app))
         elif event.type == pygame.MOUSEBUTTONDOWN:
-                if exit_button.collidepoint(event.pos):
+            if event.button == 1:  # Clic izquierdo
+                # Verificar clic en botón de salida
+                if self.exit_button.collidepoint(event.pos):
                     self.app.running = False
+                # Verificar clic en el dropdown principal
+                elif self.rect.collidepoint(event.pos):
+                    self.abierto = not self.abierto
+                # Verificar clic en una opción del dropdown
+                elif self.abierto:
+                    for i, opcion in enumerate(self.opciones):
+                        rect_opcion = pygame.Rect(self.rect.x, self.rect.y + (i + 1) * self.rect.h, self.rect.w, self.rect.h)
+                        if rect_opcion.collidepoint(event.pos):
+                            self.seleccionada = opcion
+                            self.abierto = False
+                            break
+                # Si se hace clic fuera del dropdown, cerrarlo
+                else:
+                    self.abierto = False
 
     def update(self):
         pass
 
     def draw(self, surface):
         surface.fill(self.color)
+        
+        # Título
+        title_text = FONT_TITLE.render('Pantalla de Ventas', True, (WHITE))
+        surface.blit(title_text, (self.cor_x, self.cor_y))
+        
+        # Dibujar dropdown
+        color_actual = self.color_hover if self.rect.collidepoint(pygame.mouse.get_pos()) else self.color_base
+        pygame.draw.rect(surface, color_actual, self.rect)
+        pygame.draw.rect(surface, (0, 0, 0), self.rect, 2) # Borde
+        
+        texto = FONT_SMALL.render(self.seleccionada, True, (0, 0, 0))
+        surface.blit(texto, (self.rect.x + 5, self.rect.y + 5))
+        
+        # Dibujar flechita (triángulo) - invertido cuando está abierto
+        tri_x = self.rect.x + self.rect.w - 20
+        tri_y = self.rect.y + 10
+        if self.abierto:
+            # Triángulo hacia arriba cuando está abierto
+            pygame.draw.polygon(surface, (0, 0, 0), [[tri_x, tri_y + 10], [tri_x + 10, tri_y + 10], [tri_x + 5, tri_y]])
+        else:
+            # Triángulo hacia abajo cuando está cerrado
+            pygame.draw.polygon(surface, (0, 0, 0), [[tri_x, tri_y], [tri_x + 10, tri_y], [tri_x + 5, tri_y + 10]])
+
+        # Si está abierto, dibujar las opciones
+        if self.abierto:
+            for i, opcion in enumerate(self.opciones):
+                rect_opcion = pygame.Rect(self.rect.x, self.rect.y + (i + 1) * self.rect.h, self.rect.w, self.rect.h)
+                
+                # Efecto hover en las opciones
+                mouse_pos = pygame.mouse.get_pos()
+                color = self.color_hover if rect_opcion.collidepoint(mouse_pos) else (255, 255, 255)
+                
+                pygame.draw.rect(surface, color, rect_opcion)
+                pygame.draw.rect(surface, (0, 0, 0), rect_opcion, 1) # Borde fino
+                
+                txt_opcion = FONT_SMALL.render(opcion, True, (0, 0, 0))
+                surface.blit(txt_opcion, (rect_opcion.x + 5, rect_opcion.y + 5))
+        
+        # Botón de salida
+        pygame.draw.rect(surface, RED, self.exit_button)
+        exit_button_txt = FONT_MEDIUM.render('Volver', True, (WHITE))
+        exit_txt_rect = exit_button_txt.get_rect(center=self.exit_button.center)
+        surface.blit(exit_button_txt, exit_txt_rect)
+
+
 
 class History_screen():
     def __init__(self, app):
