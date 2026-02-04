@@ -145,6 +145,13 @@ class Buy_screen():
         
         # Botón de salida/volver
         self.exit_button = pygame.Rect(self.cor_x + 50, self.cor_y + 370, 200, 50)
+        
+        # Carrito (por ahora no funcional)
+        carrito_ancho = 250
+        carrito_alto = 300
+        carrito_x = WIDTH - carrito_ancho - 20  # 20 píxeles de margen desde la derecha
+        carrito_y = 80  # Un poco abajo del título
+        self.carrito_rect = pygame.Rect(carrito_x, carrito_y, carrito_ancho, carrito_alto)
 
         
     def handle_event(self, event):
@@ -155,7 +162,7 @@ class Buy_screen():
             if event.button == 1:  # Clic izquierdo
                 # Verificar clic en botón de salida
                 if self.exit_button.collidepoint(event.pos):
-                    self.app.running = False
+                    self.app.change_screen(Main_menu_screen(self.app))
                 # Verificar clic en el dropdown principal
                 elif self.rect.collidepoint(event.pos):
                     self.abierto = not self.abierto
@@ -180,6 +187,17 @@ class Buy_screen():
         # Título
         title_text = FONT_TITLE.render('Pantalla de Ventas', True, (WHITE))
         surface.blit(title_text, (self.cor_x, self.cor_y))
+        
+        # Dibujar carrito
+        # Texto "Carrito" arriba del cuadro
+        carrito_titulo = FONT_MEDIUM.render('Carrito', True, (WHITE))
+        carrito_titulo_x = self.carrito_rect.x + (self.carrito_rect.w - carrito_titulo.get_width()) // 2
+        surface.blit(carrito_titulo, (carrito_titulo_x, self.carrito_rect.y - 35))
+        
+        # Cuadro del carrito: área interna grisácea
+        pygame.draw.rect(surface, LIGHT_GRAY, self.carrito_rect)
+        # Perímetro (borde) negro
+        pygame.draw.rect(surface, BLACK, self.carrito_rect, 2)
         
         # Dibujar dropdown
         color_actual = self.color_hover if self.rect.collidepoint(pygame.mouse.get_pos()) else self.color_base
@@ -213,12 +231,15 @@ class Buy_screen():
                 
                 txt_opcion = FONT_SMALL.render(opcion, True, (0, 0, 0))
                 surface.blit(txt_opcion, (rect_opcion.x + 5, rect_opcion.y + 5))
-        
+
+                
+
         # Botón de salida
         pygame.draw.rect(surface, RED, self.exit_button)
         exit_button_txt = FONT_MEDIUM.render('Volver', True, (WHITE))
         exit_txt_rect = exit_button_txt.get_rect(center=self.exit_button.center)
         surface.blit(exit_button_txt, exit_txt_rect)
+        
 
 
 
