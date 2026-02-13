@@ -1,3 +1,4 @@
+from numpy.char import center
 import pygame, pygame_gui
 from pathlib import Path
 from ui.constants import *
@@ -137,14 +138,19 @@ class Buy_screen():
         self.cor_x = 250
         self.cor_y = 20
         self.rect = pygame.Rect(x, y, w, h)
-        self.opciones = opciones if opciones is not None else ["Opción 1", "Opción 2", "Opción 3"]
+        self.opciones = opciones if opciones is not None else ["1", "2", "3", "4", "5", "6", "7", "8", "9"
+        "0", "7", "8"]
         self.color_base = (200, 200, 200)
         self.color_hover = (170, 170, 170)
         self.abierto = False
         self.seleccionada = "Seleccionar..."
+        # Scroll para el dropdown
+        self.scroll_offset = 0
+        self.max_opciones_visibles = 8  # Máximo de opciones visibles a la vez
         
-        # Botón de salida/volver
-        self.exit_button = pygame.Rect(self.cor_x + 50, self.cor_y + 370, 200, 50)
+        # Botón de salida/volver (esquina inferior izquierda)
+        self.exit_button = pygame.Rect(20, HEIGHT - 70, 200, 50)
+        self.buy_button = pygame.Rect(WIDTH - 220, HEIGHT - 70, 200, 50)
         
         # Carrito (por ahora no funcional)
         carrito_ancho = 250
@@ -168,15 +174,49 @@ class Buy_screen():
                     self.abierto = not self.abierto
                 # Verificar clic en una opción del dropdown
                 elif self.abierto:
-                    for i, opcion in enumerate(self.opciones):
-                        rect_opcion = pygame.Rect(self.rect.x, self.rect.y + (i + 1) * self.rect.h, self.rect.w, self.rect.h)
-                        if rect_opcion.collidepoint(event.pos):
-                            self.seleccionada = opcion
-                            self.abierto = False
-                            break
+                    total_opciones = len(self.opciones)
+                    clic_en_scroll = False
+                    
+                    # Verificar clic en la barra de scroll
+                    if total_opciones > self.max_opciones_visibles:
+                        scroll_area_height = self.max_opciones_visibles * self.rect.h
+                        scroll_bar_x = self.rect.x + self.rect.w - 15
+                        scroll_bar_y = self.rect.y + self.rect.h
+                        scroll_bar_width = 12
+                        scroll_bar_rect = pygame.Rect(scroll_bar_x, scroll_bar_y, scroll_bar_width, scroll_area_height)
+                        
+                        if scroll_bar_rect.collidepoint(event.pos):
+                            # Calcular nueva posición del scroll basada en el clic
+                            max_scroll = max(0, total_opciones - self.max_opciones_visibles)
+                            click_y_relativo = event.pos[1] - scroll_bar_y
+                            self.scroll_offset = int((click_y_relativo / scroll_area_height) * max_scroll)
+                            self.scroll_offset = max(0, min(self.scroll_offset, max_scroll))
+                            clic_en_scroll = True
+                    
+                    # Verificar clic en las opciones visibles (solo si no se hizo clic en la barra de scroll)
+                    if not clic_en_scroll:
+                        for i in range(min(self.max_opciones_visibles, total_opciones - self.scroll_offset)):
+                            indice_real = i + self.scroll_offset
+                            if indice_real >= total_opciones:
+                                break
+                            rect_opcion = pygame.Rect(self.rect.x, self.rect.y + (i + 1) * self.rect.h, self.rect.w, self.rect.h)
+                            if rect_opcion.collidepoint(event.pos):
+                                self.seleccionada = self.opciones[indice_real]
+                                self.abierto = False
+                                self.scroll_offset = 0  # Resetear scroll al seleccionar
+                                break
                 # Si se hace clic fuera del dropdown, cerrarlo
                 else:
                     self.abierto = False
+        elif event.type == pygame.MOUSEWHEEL:
+            # Scroll con la rueda del mouse cuando el dropdown está abierto
+            if self.abierto:
+                total_opciones = len(self.opciones)
+                if total_opciones > self.max_opciones_visibles:
+                    max_scroll = max(0, total_opciones - self.max_opciones_visibles)
+                    # event.y es positivo hacia arriba, negativo hacia abajo
+                    self.scroll_offset -= int(event.y)  # Invertir para que sea intuitivo
+                    self.scroll_offset = max(0, min(self.scroll_offset, max_scroll))
 
     def update(self):
         pass
@@ -217,9 +257,23 @@ class Buy_screen():
             # Triángulo hacia abajo cuando está cerrado
             pygame.draw.polygon(surface, (0, 0, 0), [[tri_x, tri_y], [tri_x + 10, tri_y], [tri_x + 5, tri_y + 10]])
 
-        # Si está abierto, dibujar las opciones
+        # Si está abierto, dibujar las opciones con scroll
         if self.abierto:
-            for i, opcion in enumerate(self.opciones):
+            # Calcular cuántas opciones mostrar
+            total_opciones = len(self.opciones)
+            opciones_a_mostrar = min(self.max_opciones_visibles, total_opciones - self.scroll_offset)
+            
+            # Asegurar que scroll_offset no sea negativo ni mayor que el máximo
+            max_scroll = max(0, total_opciones - self.max_opciones_visibles)
+            self.scroll_offset = max(0, min(self.scroll_offset, max_scroll))
+            
+            # Dibujar solo las opciones visibles
+            for i in range(opciones_a_mostrar):
+                indice_real = i + self.scroll_offset
+                if indice_real >= total_opciones:
+                    break
+                    
+                opcion = self.opciones[indice_real]
                 rect_opcion = pygame.Rect(self.rect.x, self.rect.y + (i + 1) * self.rect.h, self.rect.w, self.rect.h)
                 
                 # Efecto hover en las opciones
@@ -231,6 +285,28 @@ class Buy_screen():
                 
                 txt_opcion = FONT_SMALL.render(opcion, True, (0, 0, 0))
                 surface.blit(txt_opcion, (rect_opcion.x + 5, rect_opcion.y + 5))
+            
+            # Dibujar barra de scroll si hay más opciones de las visibles
+            if total_opciones > self.max_opciones_visibles:
+                scroll_area_height = self.max_opciones_visibles * self.rect.h
+                scroll_bar_x = self.rect.x + self.rect.w - 15
+                scroll_bar_y = self.rect.y + self.rect.h
+                scroll_bar_width = 12
+                
+                # Fondo de la barra de scroll
+                pygame.draw.rect(surface, (220, 220, 220), 
+                               (scroll_bar_x, scroll_bar_y, scroll_bar_width, scroll_area_height))
+                
+                # Calcular posición y tamaño del thumb (barra deslizante)
+                thumb_height = max(20, int(scroll_area_height * (self.max_opciones_visibles / total_opciones)))
+                thumb_y_range = scroll_area_height - thumb_height
+                thumb_y = scroll_bar_y + int(thumb_y_range * (self.scroll_offset / max(1, max_scroll)))
+                
+                # Dibujar thumb
+                pygame.draw.rect(surface, (100, 100, 100), 
+                               (scroll_bar_x, thumb_y, scroll_bar_width, thumb_height))
+                pygame.draw.rect(surface, (0, 0, 0), 
+                               (scroll_bar_x, thumb_y, scroll_bar_width, thumb_height), 1)
 
                 
 
@@ -240,6 +316,11 @@ class Buy_screen():
         exit_txt_rect = exit_button_txt.get_rect(center=self.exit_button.center)
         surface.blit(exit_button_txt, exit_txt_rect)
         
+        #boton de compra
+        pygame.draw.rect(surface, BLUE, self.buy_button)
+        buy_btn_txt = FONT_MEDIUM.render('Comprar', True, (WHITE))
+        buy_btn_rect = buy_btn_txt.get_rect(center=self.buy_button.center)
+        surface.blit(buy_btn_txt, buy_btn_rect)
 
 
 
