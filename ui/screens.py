@@ -138,8 +138,7 @@ class Buy_screen():
         self.cor_x = 250
         self.cor_y = 20
         self.rect = pygame.Rect(x, y, w, h)
-        self.opciones = opciones if opciones is not None else ["1", "2", "3", "4", "5", "6", "7", "8", "9"
-        "0", "7", "8"]
+        self.opciones = opciones if opciones is not None else ["Arroz con pollo", "Pollo a la brasa", "Ceviche"]
         self.color_base = (200, 200, 200)
         self.color_hover = (170, 170, 170)
         self.abierto = False
@@ -150,6 +149,7 @@ class Buy_screen():
         
         # Botón de salida/volver (esquina inferior izquierda)
         self.exit_button = pygame.Rect(20, HEIGHT - 70, 200, 50)
+        self.fiar_button = pygame.Rect(WIDTH - 440, HEIGHT - 70, 200, 50)
         self.buy_button = pygame.Rect(WIDTH - 220, HEIGHT - 70, 200, 50)
         
         # Carrito (por ahora no funcional)
@@ -159,6 +159,18 @@ class Buy_screen():
         carrito_y = 80  # Un poco abajo del título
         self.carrito_rect = pygame.Rect(carrito_x, carrito_y, carrito_ancho, carrito_alto)
 
+        #confimación de compra
+        self.carrito = [] #lista de productos
+        self.confirmation_msj = None
+        
+        # Scroll para el carrito
+        self.scroll_offset_carrito = 0
+        self.max_productos_visibles = (carrito_alto - 40) // 30
+        
+        # Delay para eliminación de productos
+        self.delete_delay = 250  # 1 segundo en milisegundos (ajustable)
+        self.delete_start_time = None
+        self.product_to_delete = None
         
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -172,6 +184,9 @@ class Buy_screen():
                 # Verificar clic en el dropdown principal
                 elif self.rect.collidepoint(event.pos):
                     self.abierto = not self.abierto
+                # Verificar clic en el botón fiar
+                elif self.fiar_button.collidepoint(event.pos):
+                    pass  # Por ahora no hace nada
                 # Verificar clic en una opción del dropdown
                 elif self.abierto:
                     total_opciones = len(self.opciones)
@@ -202,6 +217,7 @@ class Buy_screen():
                             rect_opcion = pygame.Rect(self.rect.x, self.rect.y + (i + 1) * self.rect.h, self.rect.w, self.rect.h)
                             if rect_opcion.collidepoint(event.pos):
                                 self.seleccionada = self.opciones[indice_real]
+                                self.carrito.append(self.opciones[indice_real])
                                 self.abierto = False
                                 self.scroll_offset = 0  # Resetear scroll al seleccionar
                                 break
@@ -217,9 +233,29 @@ class Buy_screen():
                     # event.y es positivo hacia arriba, negativo hacia abajo
                     self.scroll_offset -= int(event.y)  # Invertir para que sea intuitivo
                     self.scroll_offset = max(0, min(self.scroll_offset, max_scroll))
+            # Scroll para el carrito
+            if self.carrito_rect.collidepoint(pygame.mouse.get_pos()):
+                total_productos = len(self.carrito)
+                if total_productos > self.max_productos_visibles:
+                    max_scroll = max(0, total_productos - self.max_productos_visibles)
+                    self.scroll_offset_carrito -= int(event.y)
+                    self.scroll_offset_carrito = max(0, min(self.scroll_offset_carrito, max_scroll))
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if event.button == 1:
+                # Resetear delay de eliminación si se suelta el botón
+                self.product_to_delete = None
+                self.delete_start_time = None
+
+
 
     def update(self):
-        pass
+        # Manejar delay para eliminación de productos
+        if self.product_to_delete is not None and self.delete_start_time is not None:
+            current_time = pygame.time.get_ticks()
+            if current_time - self.delete_start_time >= self.delete_delay:
+                self.carrito.pop(self.product_to_delete)
+                self.product_to_delete = None
+                self.delete_start_time = None
 
     def draw(self, surface):
         surface.fill(self.color)
@@ -316,11 +352,74 @@ class Buy_screen():
         exit_txt_rect = exit_button_txt.get_rect(center=self.exit_button.center)
         surface.blit(exit_button_txt, exit_txt_rect)
         
+        #boton fiar
+        pygame.draw.rect(surface, ORANGE, self.fiar_button)
+        fiar_btn_txt = FONT_MEDIUM.render('Fiar', True, (WHITE))
+        fiar_btn_rect = fiar_btn_txt.get_rect(center=self.fiar_button.center)
+        surface.blit(fiar_btn_txt, fiar_btn_rect)
+
         #boton de compra
         pygame.draw.rect(surface, BLUE, self.buy_button)
         buy_btn_txt = FONT_MEDIUM.render('Comprar', True, (WHITE))
         buy_btn_rect = buy_btn_txt.get_rect(center=self.buy_button.center)
         surface.blit(buy_btn_txt, buy_btn_rect)
+
+        # Dibujar productos en el carrito con scroll si es necesario
+        total_productos = len(self.carrito)
+        if total_productos > 0:
+            productos_a_mostrar = min(self.max_productos_visibles, total_productos - self.scroll_offset_carrito)
+            for j in range(productos_a_mostrar):
+                idx = j + self.scroll_offset_carrito
+                if idx >= total_productos:
+                    break
+                producto = self.carrito[idx]
+                producto_txt = FONT_SMALL.render(producto, True, (0, 0, 0))
+                surface.blit(producto_txt, (self.carrito_rect.x + 10, self.carrito_rect.y + 10 + j * 30))
+                
+                # Símbolo de eliminación (X) al lado de cada producto visible
+                eliminar_color = (255, 0, 0) if self.product_to_delete == idx else (255, 255, 255)  # Rojo si en delay
+                eliminar_rect = pygame.Rect(self.carrito_rect.x + self.carrito_rect.w - 30, self.carrito_rect.y + 10 + j * 30, 20, 20)
+                pygame.draw.rect(surface, eliminar_color, eliminar_rect)
+                eliminar_txt = FONT_SMALL.render('X', True, (WHITE))
+                eliminar_txt_rect = eliminar_txt.get_rect(center=eliminar_rect.center)
+                surface.blit(eliminar_txt, eliminar_txt_rect)
+                
+                # Verificar clic en el botón de eliminación
+                mouse_pos = pygame.mouse.get_pos()
+                if pygame.mouse.get_pressed()[0] and eliminar_rect.collidepoint(mouse_pos):
+                    if self.product_to_delete != idx:
+                        self.product_to_delete = idx
+                        self.delete_start_time = pygame.time.get_ticks()
+                else:
+                    if self.product_to_delete == idx:
+                        self.product_to_delete = None
+                        self.delete_start_time = None
+            
+            # Dibujar barra de scroll si hay más productos de los visibles
+            if total_productos > self.max_productos_visibles:
+                scroll_area_height = self.max_productos_visibles * 30
+                scroll_bar_x = self.carrito_rect.x - 15  # Posición a la izquierda del carrito
+                scroll_bar_y = self.carrito_rect.y + 10
+                scroll_bar_width = 12
+                
+                # Fondo de la barra de scroll
+                pygame.draw.rect(surface, (220, 220, 220), 
+                               (scroll_bar_x, scroll_bar_y, scroll_bar_width, scroll_area_height))
+                
+                # Calcular posición y tamaño del thumb
+                thumb_height = max(20, int(scroll_area_height * (self.max_productos_visibles / total_productos)))
+                thumb_y_range = scroll_area_height - thumb_height
+                thumb_y = scroll_bar_y + int(thumb_y_range * (self.scroll_offset_carrito / max(1, total_productos - self.max_productos_visibles)))
+                
+                # Dibujar thumb
+                pygame.draw.rect(surface, (100, 100, 100), 
+                               (scroll_bar_x, thumb_y, scroll_bar_width, thumb_height))
+                pygame.draw.rect(surface, (0, 0, 0), 
+                               (scroll_bar_x, thumb_y, scroll_bar_width, thumb_height), 1)
+
+
+
+    
 
 
 
