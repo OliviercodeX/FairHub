@@ -1,10 +1,13 @@
 import pygame
 import pygame_gui
-from ui.screens import Splash, Main_menu_screen, Buy_screen, History_screen, Credits_screen
+from logic.fair_manager import Fair_manager
+from ui.screens import Splash, Main_menu_screen, Buy_screen, History_screen, Credits_screen, Chinamo_screen
 from ui import constants
 class Menu():
     def __init__(self):
         pygame.init()
+        self.fair_manager = Fair_manager()
+        self.fair_manager.load_data()
         
         self.screen = pygame.display.set_mode((constants.WIDTH,constants.HEIGHT))
         pygame.display.set_caption("FairHub")

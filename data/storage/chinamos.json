@@ -1,0 +1,52 @@
+{
+    "ATB1": {
+        "seller": "Carlos",
+        "products": [
+            {
+                "name": "Pollo en salsa",
+                "price_product": 2000.0
+            },
+            {
+                "name": "arroz",
+                "price_product": 100.0
+            }
+        ]
+    },
+    "ATB2": {
+        "seller": "Pablo",
+        "products": [
+            {
+                "name": "Arroz de cerdo",
+                "price_product": 2000.0
+            },
+            {
+                "name": "quinoa",
+                "price_product": 500.0
+            }
+        ]
+    },
+    "ATB3": {
+        "seller": "Alan",
+        "products": []
+    },
+    "ATB4": {
+        "seller": "Andres",
+        "products": []
+    },
+    "ATB5": {
+        "seller": "Carlos",
+        "products": []
+    },
+    "ATB6": {
+        "seller": "c",
+        "products": []
+    },
+    "ATB7": {
+        "seller": "a",
+        "products": []
+    },
+    "ATB8": {
+        "seller": "e",
+        "products": []
+    }
+}

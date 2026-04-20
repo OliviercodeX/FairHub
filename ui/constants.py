@@ -1,7 +1,10 @@
 #Constantes
 import pygame
-pygame.init()
+from pathlib import Path
+
+# pygame.init()  # Remover, se hace en menu.py
 pygame.font.init()
+
 #COLORES
 # Colores básicos
 WHITE       = (255, 255, 255)
@@ -35,3 +38,5 @@ FONT_NORMAL = pygame.font.SysFont("timesnewroman", 22)
 FONT_MEDIUM = pygame.font.SysFont("timesnewroman", 28)
 FONT_LARGE  = pygame.font.SysFont('timesnewroman' , 36)
 FONT_TITLE  = pygame.font.SysFont("timesnewroman", 43)
+
+ruta_image = Path(r'C:/Users/greiv/OneDrive/Documentos/Personal/Formaciones (Tecnologías)/Programación/Fairhub(Python+pygame)/FairHub/data/assets/image/church_brand.jpeg')

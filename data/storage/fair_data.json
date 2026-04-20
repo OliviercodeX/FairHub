@@ -1,0 +1,49 @@
+{
+    "total_sales": 0,
+    "total_fiados": 0,
+    "total_bought": 0,
+    "chinamo_totals": {
+        "ATB1": {
+            "total": 0,
+            "fiados": 0,
+            "bought": 0
+        },
+        "ATB2": {
+            "total": 0,
+            "fiados": 0,
+            "bought": 0
+        },
+        "ATB3": {
+            "total": 0,
+            "fiados": 0,
+            "bought": 0
+        },
+        "ATB4": {
+            "total": 0,
+            "fiados": 0,
+            "bought": 0
+        },
+        "ATB5": {
+            "total": 0,
+            "fiados": 0,
+            "bought": 0
+        },
+        "ATB6": {
+            "total": 0,
+            "fiados": 0,
+            "bought": 0
+        },
+        "ATB7": {
+            "total": 0,
+            "fiados": 0,
+            "bought": 0
+        },
+        "ATB8": {
+            "total": 0,
+            "fiados": 0,
+            "bought": 0
+        }
+    },
+    "top_chinamos": [],
+    "last_updated": "Sun, 19 Apr 2026 21:44:42"
+}

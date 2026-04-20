@@ -1,12 +1,13 @@
 from time import strftime
 
 class Sale():
-    def __init__(self,chinamo_id, items):
+    def __init__(self, chinamo_id, items):
         self.chinamo_id = chinamo_id
         self.items = items
         self.total = self.calculate_total()
         self.timestamp = strftime("%a, %d %b %Y %H:%M:%S")
-        # historial de ventas: lista de diccionarios con keys: chinamo_id, items, total, timestamp
+        self.sale_type = 'bought'
+        # historial de ventas: lista de diccionarios con keys: chinamo_id, items, total, timestamp, type
         self.data_history = []
 
     def calculate_total(self): 
@@ -15,12 +16,26 @@ class Sale():
             total += item['qty'] * item['unit_price']
         return total
 
+    def categorize_sale(self, sale_type='bought'):
+        """Set the sale type and mark each item with the same type.
+
+        Allowed values are 'bought' for immediate payment and 'fiado' for credit.
+        """
+        if sale_type not in ('bought', 'fiado'):
+            raise ValueError("sale_type must be 'bought' or 'fiado'")
+
+        self.sale_type = sale_type
+        for item in self.items:
+            item['type'] = sale_type
+        return self.items
+
     def to_dict(self):
         data_history = {
             'chinamo_id': self.chinamo_id,
             'items': self.items,
             'total': self.total,
-            'timestamp': self.timestamp
+            'timestamp': self.timestamp,
+            'type': self.sale_type
         }
         return data_history
 

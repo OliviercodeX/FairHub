@@ -1,59 +1,46 @@
-
-code_list = []
 class Chinamo:
-    # Variable de CLASE - compartida entre todas las instancias
     products = {}
-  #TODO Eliminar prints  
-    def __init__(self,seller_name):
+
+    def __init__(self, seller_name, chinamo_id=None):
         self.seller_name = seller_name
-        
-    def add_product(self,product, price):
-        
-        seller_code = None
-        for code_key, seller_data in self.products.items():
+        self.id = chinamo_id
+        if self.id and self.id not in self.products:
+            self.products[self.id] = {
+                'seller': self.seller_name,
+                'products': []
+            }
 
-            if seller_data['seller'] == self.seller_name:
-                seller_code = code_key
-        
-        if seller_code:
-            
-            self.products[seller_code]['products'].append({
-                'name': product,
-                'price_product': price
-            })
-        
-
-        else:
-            code = f'ATB{len(code_list)+1}'
-            self.products[code] = {
-                    'seller' : self.seller_name,
-                    'products': [{
-                        'name': product,
-                        'price_product': price
-                    }]
-                }
-            code_list.append('code')
+    def add_product(self, product, price):
+        if self.id is None:
+            return False
+        if self.id not in self.products:
+            self.products[self.id] = {
+                'seller': self.seller_name,
+                'products': []
+            }
+        self.products[self.id]['products'].append({
+            'name': product,
+            'price_product': price
+        })
+        return True
 
 
-    def remove_product(self,product): 
+    def remove_product(self, product):
+        if self.id is None or self.id not in self.products:
+            return False
+        data_products = self.products[self.id]['products']
+        for element in data_products:
+            if element['name'].lower() == product.lower():
+                data_products.remove(element)
+                return True
+        return False
 
-         for code_key, seller_data in self.products.items(): #iterate over the dict self.products
-
-             if seller_data['seller'] == self.seller_name: #if we find the name seller we put a key to access after
-                 seller_code = code_key
-
-        
-         data_products = self.products[seller_code]['products'] #get the list products with the prices
-         finded = False #the flag for validate if we delete the product or doesn't exist
-         for elemt in data_products:
-            if elemt['name'] == product:
-                 finded = True
-                 data_products.remove(elemt) #remove the element
-                 print('Eliminación correcta')
-                 return finded
-         if not finded:
-             return finded
-         
+    def update_seller_name(self, new_name):
+        if self.id is None or self.id not in self.products:
+            return False
+        self.seller_name = new_name
+        self.products[self.id]['seller'] = new_name
+        return True
 
 # test1 = Chinamo('Marcos') Esto es código de prueba entonces si lo llego a usar despues
 # test1.add_product('Arroz con leche', 500)
