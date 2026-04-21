@@ -1,52 +1,24 @@
 {
     "ATB1": {
-        "seller": "Carlos",
+        "seller": "Julia",
         "products": [
             {
-                "name": "Pollo en salsa",
-                "price_product": 2000.0
+                "name": "Pantalones",
+                "price_product": 500.0
             },
             {
-                "name": "arroz",
-                "price_product": 100.0
+                "name": "Camisas",
+                "price_product": 200.0
             }
         ]
     },
     "ATB2": {
-        "seller": "Pablo",
+        "seller": "Concepci\u00f3n",
         "products": [
             {
-                "name": "Arroz de cerdo",
-                "price_product": 2000.0
-            },
-            {
-                "name": "quinoa",
-                "price_product": 500.0
+                "name": "Carne asada",
+                "price_product": 1500.0
             }
         ]
-    },
-    "ATB3": {
-        "seller": "Alan",
-        "products": []
-    },
-    "ATB4": {
-        "seller": "Andres",
-        "products": []
-    },
-    "ATB5": {
-        "seller": "Carlos",
-        "products": []
-    },
-    "ATB6": {
-        "seller": "c",
-        "products": []
-    },
-    "ATB7": {
-        "seller": "a",
-        "products": []
-    },
-    "ATB8": {
-        "seller": "e",
-        "products": []
     }
 }

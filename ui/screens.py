@@ -139,6 +139,8 @@ class Chinamo_screen():
         self.selected_id = None
         self.showing_detail = False
         self.sidebar_items = []
+        self.sidebar_delete_buttons = []
+        self.product_delete_buttons = []
         self.back_button = pygame.Rect(20, HEIGHT - 70, 200, 50)
         self.list_panel_rect = pygame.Rect(380, 80, WIDTH - 400, HEIGHT - 160)
         self.detail_back_button = pygame.Rect(self.list_panel_rect.x + 20, self.list_panel_rect.y + 15, 120, 35)
@@ -206,11 +208,30 @@ class Chinamo_screen():
                 elif self.showing_detail and self.detail_back_button.collidepoint(event.pos):
                     self.showing_detail = False
                 elif not self.showing_detail:
+                    for chinamo_id, delete_rect in self.sidebar_delete_buttons:
+                        if delete_rect.collidepoint(event.pos):
+                            removed = self.app.fair_manager.remove_chinamo(chinamo_id)
+                            if removed:
+                                if self.selected_id == chinamo_id:
+                                    self.selected_id = None
+                                    self.showing_detail = False
+                                self.app.fair_manager.save_data()
+                            return
                     for chinamo_id, rect in self.sidebar_items:
                         if rect.collidepoint(event.pos):
                             self.selected_id = chinamo_id
                             self.showing_detail = True
                             break
+                elif self.showing_detail and self.selected_id:
+                    for product_index, delete_rect in self.product_delete_buttons:
+                        if delete_rect.collidepoint(event.pos):
+                            removed = self.app.fair_manager.remove_product_from_chinamo(
+                                self.selected_id,
+                                product_index
+                            )
+                            if removed:
+                                self.app.fair_manager.save_data()
+                            return
         elif event.type == pygame.MOUSEWHEEL:
             if not self.showing_detail and self.list_panel_rect.collidepoint(pygame.mouse.get_pos()):
                 total_chinamos = len(self.app.fair_manager.chinamos)
@@ -265,6 +286,8 @@ class Chinamo_screen():
         pygame.draw.rect(surface, BLACK, detail_rect, 2)
 
         self.sidebar_items = []
+        self.sidebar_delete_buttons = []
+        self.product_delete_buttons = []
         if not self.showing_detail:
             list_title = FONT_MEDIUM.render('Lista de chinamos', True, BLACK)
             surface.blit(list_title, (detail_rect.x + 20, detail_rect.y + 15))
@@ -283,6 +306,13 @@ class Chinamo_screen():
                 label = FONT_MEDIUM.render(f'{chinamo_id} - {chinamo.seller_name}', True, BLACK)
                 surface.blit(label, (item_rect.x + 10, item_rect.y + 13))
                 self.sidebar_items.append((chinamo_id, item_rect))
+
+                delete_rect = pygame.Rect(item_rect.right - 34, item_rect.y + 10, 24, 24)
+                pygame.draw.rect(surface, RED, delete_rect)
+                delete_text = FONT_SMALL.render('X', True, WHITE)
+                delete_text_rect = delete_text.get_rect(center=delete_rect.center)
+                surface.blit(delete_text, delete_text_rect)
+                self.sidebar_delete_buttons.append((chinamo_id, delete_rect))
                 y += self.list_item_height + self.list_item_gap
 
             if len(chinamos_items) > visible_slots:
@@ -330,10 +360,17 @@ class Chinamo_screen():
             surface.blit(products_title, (detail_rect.x + 20, line_y + 10))
             line_y += 40
             if products:
-                for product in products[:8]:
+                for index, product in enumerate(products[:8]):
                     product_text = f'- {product["name"]} (${product["price_product"]})'
                     product_surf = FONT_SMALL.render(product_text, True, BLACK)
                     surface.blit(product_surf, (detail_rect.x + 30, line_y))
+
+                    delete_rect = pygame.Rect(detail_rect.right - 42, line_y - 2, 24, 24)
+                    pygame.draw.rect(surface, RED, delete_rect)
+                    delete_text = FONT_SMALL.render('X', True, WHITE)
+                    delete_text_rect = delete_text.get_rect(center=delete_rect.center)
+                    surface.blit(delete_text, delete_text_rect)
+                    self.product_delete_buttons.append((index, delete_rect))
                     line_y += 25
                     if line_y > detail_rect.y + detail_rect.h - 40:
                         break
@@ -366,290 +403,314 @@ class Chinamo_screen():
 
 
 class Buy_screen():
-    def __init__(self, app, x=100, y=100, w=200, h=30, opciones=None):
+    def __init__(self, app):
         self.app = app
         self.color = GREEN
         self.cor_x = 250
         self.cor_y = 20
-        self.rect = pygame.Rect(x, y, w, h)
-        self.opciones = opciones if opciones is not None else ["Arroz con pollo", "Pollo a la brasa", "Ceviche"]
-        self.color_base = (200, 200, 200)
-        self.color_hover = (170, 170, 170)
-        self.abierto = False
-        self.seleccionada = "Seleccionar..."
-        # Scroll para el dropdown
-        self.scroll_offset = 0
-        self.max_opciones_visibles = 8  # Máximo de opciones visibles a la vez
-        
-        # Botón de salida/volver (esquina inferior izquierda)
         self.exit_button = pygame.Rect(20, HEIGHT - 70, 200, 50)
         self.fiar_button = pygame.Rect(WIDTH - 440, HEIGHT - 70, 200, 50)
         self.buy_button = pygame.Rect(WIDTH - 220, HEIGHT - 70, 200, 50)
-        
-        # Carrito (por ahora no funcional)
-        carrito_ancho = 250
-        carrito_alto = 300
-        carrito_x = WIDTH - carrito_ancho - 20  # 20 píxeles de margen desde la derecha
-        carrito_y = 80  # Un poco abajo del título
-        self.carrito_rect = pygame.Rect(carrito_x, carrito_y, carrito_ancho, carrito_alto)
 
-        #confimación de compra
-        self.carrito = [] #lista de productos
-        self.confirmation_msj = None
-        
-        # Scroll para el carrito
-        self.scroll_offset_carrito = 0
-        self.max_productos_visibles = (carrito_alto - 40) // 30
-        
-        # Delay para eliminación de productos
-        self.delete_delay = 250  # 1 segundo en milisegundos (ajustable)
-        self.delete_start_time = None
-        self.product_to_delete = None
-        
+        self.products_rect = pygame.Rect(20, 80, WIDTH - 320, HEIGHT - 170)
+        self.carrito_rect = pygame.Rect(WIDTH - 280, 80, 260, HEIGHT - 170)
+
+        self.product_row_h = 50
+        self.cart_row_h = 36
+        self.product_scroll = 0
+        self.cart_scroll = 0
+
+        self.product_click_areas = []
+        self.cart_delete_areas = []
+        self.carrito = []
+
+        self.confirmation_msj = ''
+        self.confirmation_time = 0
+        self.asking_debtor_name = False
+        self.debtor_name_input = ''
+        self.confirm_existing_name = False
+
+    def _get_available_products(self):
+        products = []
+        for chinamo_id, chinamo_data in self.app.fair_manager.chinamos.items():
+            product_items = chinamo_data.products.get(chinamo_id, {}).get('products', [])
+            seller_name = chinamo_data.seller_name
+            for product in product_items:
+                products.append({
+                    'chinamo_id': chinamo_id,
+                    'seller': seller_name,
+                    'name': product['name'],
+                    'price': float(product['price_product'])
+                })
+        return products
+
+    def _add_to_cart(self, product_data):
+        for item in self.carrito:
+            if item['chinamo_id'] == product_data['chinamo_id'] and item['name'] == product_data['name']:
+                item['qty'] += 1
+                return
+        self.carrito.append({
+            'chinamo_id': product_data['chinamo_id'],
+            'seller': product_data['seller'],
+            'name': product_data['name'],
+            'unit_price': product_data['price'],
+            'qty': 1
+        })
+
+    def _register_sale(self, sale_type, debtor_name=None, allow_existing_fiado=False):
+        if not self.carrito:
+            self.confirmation_msj = 'El carrito está vacío.'
+            self.confirmation_time = pygame.time.get_ticks()
+            return
+
+        grouped_items = {}
+        for item in self.carrito:
+            chinamo_id = item['chinamo_id']
+            grouped_items.setdefault(chinamo_id, [])
+            grouped_items[chinamo_id].append({
+                'name': item['name'],
+                'qty': item['qty'],
+                'unit_price': item['unit_price']
+            })
+
+        for chinamo_id, items in grouped_items.items():
+            sale = self.app.fair_manager.register_sale(chinamo_id, items)
+            sale.categorize_sale(sale_type, debtor_name=debtor_name)
+        if sale_type == 'fiado':
+            fiado_items = []
+            for item in self.carrito:
+                fiado_items.append({
+                    'chinamo_id': item['chinamo_id'],
+                    'name': item['name'],
+                    'qty': item['qty'],
+                    'unit_price': item['unit_price']
+                })
+            self.app.fair_manager.add_fiado(
+                debtor_name,
+                fiado_items,
+                allow_existing=allow_existing_fiado
+            )
+
+        self.app.fair_manager.save_data()
+        self.carrito = []
+        self.cart_scroll = 0
+        action = 'fiada' if sale_type == 'fiado' else 'registrada'
+        self.confirmation_msj = f'Venta {action} correctamente.'
+        self.confirmation_time = pygame.time.get_ticks()
+
     def handle_event(self, event):
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
+        if self.confirm_existing_name:
+            if event.type == pygame.KEYDOWN:
+                key_text = event.unicode.lower() if event.unicode else ''
+                if event.key == pygame.K_ESCAPE:
+                    self.confirm_existing_name = False
+                    return
+                if event.key == pygame.K_y or key_text in ('y', 's'):
+                    debtor_name = self.debtor_name_input.strip()
+                    self.confirm_existing_name = False
+                    self.asking_debtor_name = False
+                    self._register_sale('fiado', debtor_name=debtor_name, allow_existing_fiado=True)
+                    self.debtor_name_input = ''
+                    return
+                if event.key == pygame.K_n or key_text == 'n':
+                    self.confirm_existing_name = False
+                    return
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                return
+        elif self.asking_debtor_name:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self.asking_debtor_name = False
+                    self.debtor_name_input = ''
+                    return
+                if event.key == pygame.K_RETURN:
+                    debtor_name = self.debtor_name_input.strip()
+                    if not debtor_name:
+                        self.confirmation_msj = 'Debes ingresar nombre para fiar.'
+                        self.confirmation_time = pygame.time.get_ticks()
+                        return
+                    if self.app.fair_manager.debtor_name_exists(debtor_name):
+                        self.confirm_existing_name = True
+                        return
+                    self.asking_debtor_name = False
+                    self._register_sale('fiado', debtor_name=debtor_name)
+                    self.debtor_name_input = ''
+                    return
+                if event.key == pygame.K_BACKSPACE:
+                    self.debtor_name_input = self.debtor_name_input[:-1]
+                    return
+                if event.unicode and event.unicode.isprintable():
+                    self.debtor_name_input += event.unicode
+                    return
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                return
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            self.app.change_screen(Main_menu_screen(self.app))
+
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.exit_button.collidepoint(event.pos):
                 self.app.change_screen(Main_menu_screen(self.app))
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:  # Clic izquierdo
-                # Verificar clic en botón de salida
-                if self.exit_button.collidepoint(event.pos):
-                    self.app.change_screen(Main_menu_screen(self.app))
-                # Verificar clic en el dropdown principal
-                elif self.rect.collidepoint(event.pos):
-                    self.abierto = not self.abierto
-                # Verificar clic en el botón fiar
-                elif self.fiar_button.collidepoint(event.pos):
-                    pass  # Por ahora no hace nada
-                # Verificar clic en una opción del dropdown
-                elif self.abierto:
-                    total_opciones = len(self.opciones)
-                    clic_en_scroll = False
-                    
-                    # Verificar clic en la barra de scroll
-                    if total_opciones > self.max_opciones_visibles:
-                        scroll_area_height = self.max_opciones_visibles * self.rect.h
-                        scroll_bar_x = self.rect.x + self.rect.w - 15
-                        scroll_bar_y = self.rect.y + self.rect.h
-                        scroll_bar_width = 12
-                        scroll_bar_rect = pygame.Rect(scroll_bar_x, scroll_bar_y, scroll_bar_width, scroll_area_height)
-                        
-                        if scroll_bar_rect.collidepoint(event.pos):
-                            # Calcular nueva posición del scroll basada en el clic
-                            max_scroll = max(0, total_opciones - self.max_opciones_visibles)
-                            click_y_relativo = event.pos[1] - scroll_bar_y
-                            self.scroll_offset = int((click_y_relativo / scroll_area_height) * max_scroll)
-                            self.scroll_offset = max(0, min(self.scroll_offset, max_scroll))
-                            clic_en_scroll = True
-                    
-                    # Verificar clic en las opciones visibles (solo si no se hizo clic en la barra de scroll)
-                    if not clic_en_scroll:
-                        for i in range(min(self.max_opciones_visibles, total_opciones - self.scroll_offset)):
-                            indice_real = i + self.scroll_offset
-                            if indice_real >= total_opciones:
-                                break
-                            rect_opcion = pygame.Rect(self.rect.x, self.rect.y + (i + 1) * self.rect.h, self.rect.w, self.rect.h)
-                            if rect_opcion.collidepoint(event.pos):
-                                self.seleccionada = self.opciones[indice_real]
-                                self.carrito.append(self.opciones[indice_real])
-                                self.abierto = False
-                                self.scroll_offset = 0  # Resetear scroll al seleccionar
-                                break
-                # Si se hace clic fuera del dropdown, cerrarlo
-                else:
-                    self.abierto = False
+                return
+            if self.fiar_button.collidepoint(event.pos):
+                if not self.carrito:
+                    self.confirmation_msj = 'El carrito está vacío.'
+                    self.confirmation_time = pygame.time.get_ticks()
+                    return
+                self.asking_debtor_name = True
+                self.debtor_name_input = ''
+                return
+            if self.buy_button.collidepoint(event.pos):
+                self._register_sale('bought')
+                return
+
+            for product_data, rect in self.product_click_areas:
+                if rect.collidepoint(event.pos):
+                    self._add_to_cart(product_data)
+                    return
+
+            for index, rect in self.cart_delete_areas:
+                if rect.collidepoint(event.pos):
+                    self.carrito.pop(index)
+                    return
+
         elif event.type == pygame.MOUSEWHEEL:
-            # Scroll con la rueda del mouse cuando el dropdown está abierto
-            if self.abierto:
-                total_opciones = len(self.opciones)
-                if total_opciones > self.max_opciones_visibles:
-                    max_scroll = max(0, total_opciones - self.max_opciones_visibles)
-                    # event.y es positivo hacia arriba, negativo hacia abajo
-                    self.scroll_offset -= int(event.y)  # Invertir para que sea intuitivo
-                    self.scroll_offset = max(0, min(self.scroll_offset, max_scroll))
-            # Scroll para el carrito
-            if self.carrito_rect.collidepoint(pygame.mouse.get_pos()):
-                total_productos = len(self.carrito)
-                if total_productos > self.max_productos_visibles:
-                    max_scroll = max(0, total_productos - self.max_productos_visibles)
-                    self.scroll_offset_carrito -= int(event.y)
-                    self.scroll_offset_carrito = max(0, min(self.scroll_offset_carrito, max_scroll))
-        elif event.type == pygame.MOUSEBUTTONUP:
-            if event.button == 1:
-                # Resetear delay de eliminación si se suelta el botón
-                self.product_to_delete = None
-                self.delete_start_time = None
+            available_products = self._get_available_products()
+            products_visible = max(1, (self.products_rect.h - 20) // self.product_row_h)
+            max_product_scroll = max(0, len(available_products) - products_visible)
+            max_cart_scroll = max(0, len(self.carrito) - max(1, (self.carrito_rect.h - 20) // self.cart_row_h))
 
-
+            mouse_pos = pygame.mouse.get_pos()
+            if self.products_rect.collidepoint(mouse_pos):
+                self.product_scroll -= int(event.y)
+                self.product_scroll = max(0, min(self.product_scroll, max_product_scroll))
+            elif self.carrito_rect.collidepoint(mouse_pos):
+                self.cart_scroll -= int(event.y)
+                self.cart_scroll = max(0, min(self.cart_scroll, max_cart_scroll))
 
     def update(self):
-        # Manejar delay para eliminación de productos
-        if self.product_to_delete is not None and self.delete_start_time is not None:
-            current_time = pygame.time.get_ticks()
-            if current_time - self.delete_start_time >= self.delete_delay:
-                self.carrito.pop(self.product_to_delete)
-                self.product_to_delete = None
-                self.delete_start_time = None
+        if self.confirmation_msj and pygame.time.get_ticks() - self.confirmation_time > 2500:
+            self.confirmation_msj = ''
 
     def draw(self, surface):
         surface.fill(self.color)
-        
-        # Título
-        title_text = FONT_TITLE.render('Pantalla de Ventas', True, (WHITE))
+        title_text = FONT_TITLE.render('Pantalla de Ventas', True, WHITE)
         surface.blit(title_text, (self.cor_x, self.cor_y))
-        
-        # Dibujar carrito
-        # Texto "Carrito" arriba del cuadro
-        carrito_titulo = FONT_MEDIUM.render('Carrito', True, (WHITE))
-        carrito_titulo_x = self.carrito_rect.x + (self.carrito_rect.w - carrito_titulo.get_width()) // 2
-        surface.blit(carrito_titulo, (carrito_titulo_x, self.carrito_rect.y - 35))
-        
-        # Cuadro del carrito: área interna grisácea
+
+        pygame.draw.rect(surface, LIGHT_GRAY, self.products_rect)
+        pygame.draw.rect(surface, BLACK, self.products_rect, 2)
+        products_title = FONT_MEDIUM.render('Productos disponibles (clic para agregar)', True, BLACK)
+        surface.blit(products_title, (self.products_rect.x + 12, self.products_rect.y + 8))
+
         pygame.draw.rect(surface, LIGHT_GRAY, self.carrito_rect)
-        # Perímetro (borde) negro
         pygame.draw.rect(surface, BLACK, self.carrito_rect, 2)
-        
-        # Dibujar dropdown
-        color_actual = self.color_hover if self.rect.collidepoint(pygame.mouse.get_pos()) else self.color_base
-        pygame.draw.rect(surface, color_actual, self.rect)
-        pygame.draw.rect(surface, (0, 0, 0), self.rect, 2) # Borde
-        
-        texto = FONT_SMALL.render(self.seleccionada, True, (0, 0, 0))
-        surface.blit(texto, (self.rect.x + 5, self.rect.y + 5))
-        
-        # Dibujar flechita (triángulo) - invertido cuando está abierto
-        tri_x = self.rect.x + self.rect.w - 20
-        tri_y = self.rect.y + 10
-        if self.abierto:
-            # Triángulo hacia arriba cuando está abierto
-            pygame.draw.polygon(surface, (0, 0, 0), [[tri_x, tri_y + 10], [tri_x + 10, tri_y + 10], [tri_x + 5, tri_y]])
-        else:
-            # Triángulo hacia abajo cuando está cerrado
-            pygame.draw.polygon(surface, (0, 0, 0), [[tri_x, tri_y], [tri_x + 10, tri_y], [tri_x + 5, tri_y + 10]])
+        carrito_titulo = FONT_MEDIUM.render('Carrito', True, BLACK)
+        surface.blit(carrito_titulo, (self.carrito_rect.x + 12, self.carrito_rect.y + 8))
 
-        # Si está abierto, dibujar las opciones con scroll
-        if self.abierto:
-            # Calcular cuántas opciones mostrar
-            total_opciones = len(self.opciones)
-            opciones_a_mostrar = min(self.max_opciones_visibles, total_opciones - self.scroll_offset)
-            
-            # Asegurar que scroll_offset no sea negativo ni mayor que el máximo
-            max_scroll = max(0, total_opciones - self.max_opciones_visibles)
-            self.scroll_offset = max(0, min(self.scroll_offset, max_scroll))
-            
-            # Dibujar solo las opciones visibles
-            for i in range(opciones_a_mostrar):
-                indice_real = i + self.scroll_offset
-                if indice_real >= total_opciones:
-                    break
-                    
-                opcion = self.opciones[indice_real]
-                rect_opcion = pygame.Rect(self.rect.x, self.rect.y + (i + 1) * self.rect.h, self.rect.w, self.rect.h)
-                
-                # Efecto hover en las opciones
-                mouse_pos = pygame.mouse.get_pos()
-                color = self.color_hover if rect_opcion.collidepoint(mouse_pos) else (255, 255, 255)
-                
-                pygame.draw.rect(surface, color, rect_opcion)
-                pygame.draw.rect(surface, (0, 0, 0), rect_opcion, 1) # Borde fino
-                
-                txt_opcion = FONT_SMALL.render(opcion, True, (0, 0, 0))
-                surface.blit(txt_opcion, (rect_opcion.x + 5, rect_opcion.y + 5))
-            
-            # Dibujar barra de scroll si hay más opciones de las visibles
-            if total_opciones > self.max_opciones_visibles:
-                scroll_area_height = self.max_opciones_visibles * self.rect.h
-                scroll_bar_x = self.rect.x + self.rect.w - 15
-                scroll_bar_y = self.rect.y + self.rect.h
-                scroll_bar_width = 12
-                
-                # Fondo de la barra de scroll
-                pygame.draw.rect(surface, (220, 220, 220), 
-                               (scroll_bar_x, scroll_bar_y, scroll_bar_width, scroll_area_height))
-                
-                # Calcular posición y tamaño del thumb (barra deslizante)
-                thumb_height = max(20, int(scroll_area_height * (self.max_opciones_visibles / total_opciones)))
-                thumb_y_range = scroll_area_height - thumb_height
-                thumb_y = scroll_bar_y + int(thumb_y_range * (self.scroll_offset / max(1, max_scroll)))
-                
-                # Dibujar thumb
-                pygame.draw.rect(surface, (100, 100, 100), 
-                               (scroll_bar_x, thumb_y, scroll_bar_width, thumb_height))
-                pygame.draw.rect(surface, (0, 0, 0), 
-                               (scroll_bar_x, thumb_y, scroll_bar_width, thumb_height), 1)
+        available_products = self._get_available_products()
+        products_visible = max(1, (self.products_rect.h - 45) // self.product_row_h)
+        self.product_scroll = max(0, min(self.product_scroll, max(0, len(available_products) - products_visible)))
+        visible_products = available_products[self.product_scroll:self.product_scroll + products_visible]
 
-                
+        self.product_click_areas = []
+        y = self.products_rect.y + 40
+        for product in visible_products:
+            row_rect = pygame.Rect(self.products_rect.x + 8, y, self.products_rect.w - 16, self.product_row_h - 6)
+            row_color = (230, 245, 230) if row_rect.collidepoint(pygame.mouse.get_pos()) else WHITE
+            pygame.draw.rect(surface, row_color, row_rect)
+            pygame.draw.rect(surface, BLACK, row_rect, 1)
 
-        # Botón de salida
+            name_text = FONT_MEDIUM.render(f'{product["name"]}  -  ${product["price"]}', True, BLACK)
+            meta_text = FONT_SMALL.render(f'{product["seller"]} | {product["chinamo_id"]}', True, (90, 90, 90))
+            surface.blit(name_text, (row_rect.x + 10, row_rect.y + 6))
+            surface.blit(meta_text, (row_rect.x + 10, row_rect.y + 28))
+
+            self.product_click_areas.append((product, row_rect))
+            y += self.product_row_h
+
+        if not available_products:
+            empty_text = FONT_MEDIUM.render('No hay productos registrados en los chinamos.', True, BLACK)
+            surface.blit(empty_text, (self.products_rect.x + 12, self.products_rect.y + 55))
+
+        cart_visible = max(1, (self.carrito_rect.h - 45) // self.cart_row_h)
+        self.cart_scroll = max(0, min(self.cart_scroll, max(0, len(self.carrito) - cart_visible)))
+        visible_cart = self.carrito[self.cart_scroll:self.cart_scroll + cart_visible]
+        self.cart_delete_areas = []
+
+        cart_y = self.carrito_rect.y + 40
+        for offset, item in enumerate(visible_cart):
+            row_rect = pygame.Rect(self.carrito_rect.x + 8, cart_y, self.carrito_rect.w - 16, self.cart_row_h - 4)
+            pygame.draw.rect(surface, WHITE, row_rect)
+            pygame.draw.rect(surface, BLACK, row_rect, 1)
+
+            total_line = item['qty'] * item['unit_price']
+            text = FONT_SMALL.render(
+                f'{item["qty"]}x {item["name"]} (${item["unit_price"]})',
+                True,
+                BLACK
+            )
+            meta = FONT_SMALL.render(f'{item["chinamo_id"]}  Total:${total_line}', True, (90, 90, 90))
+            surface.blit(text, (row_rect.x + 6, row_rect.y + 2))
+            surface.blit(meta, (row_rect.x + 6, row_rect.y + 18))
+
+            delete_rect = pygame.Rect(row_rect.right - 22, row_rect.y + 7, 16, 16)
+            pygame.draw.rect(surface, RED, delete_rect)
+            delete_txt = FONT_SMALL.render('X', True, WHITE)
+            surface.blit(delete_txt, delete_txt.get_rect(center=delete_rect.center))
+            self.cart_delete_areas.append((self.cart_scroll + offset, delete_rect))
+            cart_y += self.cart_row_h
+
+        if self.confirmation_msj:
+            confirmation = FONT_MEDIUM.render(self.confirmation_msj, True, WHITE)
+            surface.blit(confirmation, (20, HEIGHT - 110))
+
         pygame.draw.rect(surface, RED, self.exit_button)
-        exit_button_txt = FONT_MEDIUM.render('Volver', True, (WHITE))
-        exit_txt_rect = exit_button_txt.get_rect(center=self.exit_button.center)
-        surface.blit(exit_button_txt, exit_txt_rect)
-        
-        #boton fiar
+        exit_button_txt = FONT_MEDIUM.render('Volver', True, WHITE)
+        surface.blit(exit_button_txt, exit_button_txt.get_rect(center=self.exit_button.center))
+
         pygame.draw.rect(surface, ORANGE, self.fiar_button)
-        fiar_btn_txt = FONT_MEDIUM.render('Fiar', True, (WHITE))
-        fiar_btn_rect = fiar_btn_txt.get_rect(center=self.fiar_button.center)
-        surface.blit(fiar_btn_txt, fiar_btn_rect)
+        fiar_btn_txt = FONT_MEDIUM.render('Fiar', True, WHITE)
+        surface.blit(fiar_btn_txt, fiar_btn_txt.get_rect(center=self.fiar_button.center))
 
-        #boton de compra
         pygame.draw.rect(surface, BLUE, self.buy_button)
-        buy_btn_txt = FONT_MEDIUM.render('Comprar', True, (WHITE))
-        buy_btn_rect = buy_btn_txt.get_rect(center=self.buy_button.center)
-        surface.blit(buy_btn_txt, buy_btn_rect)
+        buy_btn_txt = FONT_MEDIUM.render('Comprar', True, WHITE)
+        surface.blit(buy_btn_txt, buy_btn_txt.get_rect(center=self.buy_button.center))
 
-        # Dibujar productos en el carrito con scroll si es necesario
-        total_productos = len(self.carrito)
-        if total_productos > 0:
-            productos_a_mostrar = min(self.max_productos_visibles, total_productos - self.scroll_offset_carrito)
-            for j in range(productos_a_mostrar):
-                idx = j + self.scroll_offset_carrito
-                if idx >= total_productos:
-                    break
-                producto = self.carrito[idx]
-                producto_txt = FONT_SMALL.render(producto, True, (0, 0, 0))
-                surface.blit(producto_txt, (self.carrito_rect.x + 10, self.carrito_rect.y + 10 + j * 30))
-                
-                # Símbolo de eliminación (X) al lado de cada producto visible
-                eliminar_color = (255, 0, 0) if self.product_to_delete == idx else (255, 255, 255)  # Rojo si en delay
-                eliminar_rect = pygame.Rect(self.carrito_rect.x + self.carrito_rect.w - 30, self.carrito_rect.y + 10 + j * 30, 20, 20)
-                pygame.draw.rect(surface, eliminar_color, eliminar_rect)
-                eliminar_txt = FONT_SMALL.render('X', True, (WHITE))
-                eliminar_txt_rect = eliminar_txt.get_rect(center=eliminar_rect.center)
-                surface.blit(eliminar_txt, eliminar_txt_rect)
-                
-                # Verificar clic en el botón de eliminación
-                mouse_pos = pygame.mouse.get_pos()
-                if pygame.mouse.get_pressed()[0] and eliminar_rect.collidepoint(mouse_pos):
-                    if self.product_to_delete != idx:
-                        self.product_to_delete = idx
-                        self.delete_start_time = pygame.time.get_ticks()
-                else:
-                    if self.product_to_delete == idx:
-                        self.product_to_delete = None
-                        self.delete_start_time = None
-            
-            # Dibujar barra de scroll si hay más productos de los visibles
-            if total_productos > self.max_productos_visibles:
-                scroll_area_height = self.max_productos_visibles * 30
-                scroll_bar_x = self.carrito_rect.x - 15  # Posición a la izquierda del carrito
-                scroll_bar_y = self.carrito_rect.y + 10
-                scroll_bar_width = 12
-                
-                # Fondo de la barra de scroll
-                pygame.draw.rect(surface, (220, 220, 220), 
-                               (scroll_bar_x, scroll_bar_y, scroll_bar_width, scroll_area_height))
-                
-                # Calcular posición y tamaño del thumb
-                thumb_height = max(20, int(scroll_area_height * (self.max_productos_visibles / total_productos)))
-                thumb_y_range = scroll_area_height - thumb_height
-                thumb_y = scroll_bar_y + int(thumb_y_range * (self.scroll_offset_carrito / max(1, total_productos - self.max_productos_visibles)))
-                
-                # Dibujar thumb
-                pygame.draw.rect(surface, (100, 100, 100), 
-                               (scroll_bar_x, thumb_y, scroll_bar_width, thumb_height))
-                pygame.draw.rect(surface, (0, 0, 0), 
-                               (scroll_bar_x, thumb_y, scroll_bar_width, thumb_height), 1)
+        if self.asking_debtor_name:
+            overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 150))
+            surface.blit(overlay, (0, 0))
+
+            modal_rect = pygame.Rect(WIDTH // 2 - 220, HEIGHT // 2 - 90, 440, 180)
+            pygame.draw.rect(surface, LIGHT_GRAY, modal_rect)
+            pygame.draw.rect(surface, BLACK, modal_rect, 2)
+
+            title = FONT_MEDIUM.render('Nombre para fiado (obligatorio)', True, BLACK)
+            surface.blit(title, (modal_rect.x + 20, modal_rect.y + 20))
+
+            input_rect = pygame.Rect(modal_rect.x + 20, modal_rect.y + 65, modal_rect.w - 40, 40)
+            pygame.draw.rect(surface, WHITE, input_rect)
+            pygame.draw.rect(surface, BLACK, input_rect, 2)
+
+            typed_text = FONT_MEDIUM.render(self.debtor_name_input, True, BLACK)
+            surface.blit(typed_text, (input_rect.x + 10, input_rect.y + 8))
+
+            help_text = FONT_SMALL.render('ENTER para confirmar | ESC para cancelar', True, BLACK)
+            surface.blit(help_text, (modal_rect.x + 20, modal_rect.y + 125))
+
+        if self.confirm_existing_name:
+            overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 170))
+            surface.blit(overlay, (0, 0))
+
+            confirm_rect = pygame.Rect(WIDTH // 2 - 260, HEIGHT // 2 - 85, 520, 170)
+            pygame.draw.rect(surface, LIGHT_GRAY, confirm_rect)
+            pygame.draw.rect(surface, BLACK, confirm_rect, 2)
+            line1 = FONT_SMALL.render('Ese nombre ya existe.', True, BLACK)
+            line2 = FONT_SMALL.render('Seguro que quieres agregar este fiado a la misma persona?', True, BLACK)
+            line3 = FONT_SMALL.render('Presiona Y = Si, N = No', True, BLACK)
+            surface.blit(line1, (confirm_rect.x + 20, confirm_rect.y + 35))
+            surface.blit(line2, (confirm_rect.x + 20, confirm_rect.y + 65))
+            surface.blit(line3, (confirm_rect.x + 20, confirm_rect.y + 105))
 
 
 
@@ -661,25 +722,179 @@ class History_screen():
     def __init__(self, app):
         self.app = app
         self.color = ORANGE
-        self.cor_x = 250
+        self.cor_x = 200
         self.cor_y = 20
-        
-        
+        self.back_button = pygame.Rect(20, HEIGHT - 70, 200, 50)
+        self.fiados_button = pygame.Rect(20, 80, 220, 45)
+        self.list_rect = pygame.Rect(20, 140, 360, HEIGHT - 220)
+        self.detail_rect = pygame.Rect(400, 80, WIDTH - 420, HEIGHT - 160)
+        self.show_fiados = True
+        self.in_fiados_view = False
+        self.list_scroll = 0
+        self.detail_scroll = 0
+        self.selected_fiado_id = None
+        self.fiado_click_areas = []
+        self.paid_click_areas = []
+
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 self.app.change_screen(Main_menu_screen(self.app))
         elif event.type == pygame.MOUSEBUTTONDOWN:
-                if exit_button.collidepoint(event.pos):
-                    self.app.running = False
+            if event.button == 1:
+                if self.back_button.collidepoint(event.pos):
+                    self.app.change_screen(Main_menu_screen(self.app))
+                    return
+                if self.fiados_button.collidepoint(event.pos):
+                    self.show_fiados = True
+                    self.in_fiados_view = True
+                    return
+                if not self.in_fiados_view:
+                    return
 
+                for fiado_id, rect in self.fiado_click_areas:
+                    if rect.collidepoint(event.pos):
+                        self.selected_fiado_id = fiado_id
+                        self.detail_scroll = 0
+                        return
+
+                for fiado_id, item_index, rect in self.paid_click_areas:
+                    if rect.collidepoint(event.pos):
+                        if self.app.fair_manager.mark_fiado_item_paid(fiado_id, item_index):
+                            self.app.fair_manager.save_data()
+                            if self.selected_fiado_id == fiado_id:
+                                still_exists = any(
+                                    entry.get('id') == fiado_id for entry in self.app.fair_manager.get_fiados()
+                                )
+                                if not still_exists:
+                                    self.selected_fiado_id = None
+                                    self.detail_scroll = 0
+                        return
+        elif event.type == pygame.MOUSEWHEEL:
+            if not self.in_fiados_view:
+                return
+            mouse_pos = pygame.mouse.get_pos()
+            if self.list_rect.collidepoint(mouse_pos):
+                fiados = self.app.fair_manager.get_fiados()
+                visible_rows = max(1, (self.list_rect.h - 20) // 70)
+                max_scroll = max(0, len(fiados) - visible_rows)
+                self.list_scroll -= int(event.y)
+                self.list_scroll = max(0, min(self.list_scroll, max_scroll))
+            elif self.detail_rect.collidepoint(mouse_pos) and self.selected_fiado_id:
+                selected_entry = next(
+                    (entry for entry in self.app.fair_manager.get_fiados() if entry.get('id') == self.selected_fiado_id),
+                    None
+                )
+                if selected_entry:
+                    visible_items = max(1, (self.detail_rect.h - 90) // 52)
+                    max_scroll = max(0, len(selected_entry.get('items', [])) - visible_items)
+                    self.detail_scroll -= int(event.y)
+                    self.detail_scroll = max(0, min(self.detail_scroll, max_scroll))
 
     def update(self):
-        pass
+        fiados = self.app.fair_manager.get_fiados()
+        visible_rows = max(1, (self.list_rect.h - 20) // 70)
+        self.list_scroll = max(0, min(self.list_scroll, max(0, len(fiados) - visible_rows)))
+        if self.selected_fiado_id and not any(entry.get('id') == self.selected_fiado_id for entry in fiados):
+            self.selected_fiado_id = None
+            self.detail_scroll = 0
 
     def draw(self, surface):
         surface.fill(self.color)
-        
+        title_text = FONT_TITLE.render('Historial', True, WHITE)
+        surface.blit(title_text, (self.cor_x, self.cor_y))
+
+        pygame.draw.rect(surface, BLUE, self.fiados_button)
+        fiados_text = FONT_SMALL.render('Historial fiados', True, WHITE)
+        surface.blit(fiados_text, fiados_text.get_rect(center=self.fiados_button.center))
+
+        if not self.in_fiados_view:
+            info = FONT_MEDIUM.render('Selecciona "Historial fiados" para abrir esa vista.', True, WHITE)
+            surface.blit(info, (20, 150))
+            pygame.draw.rect(surface, RED, self.back_button)
+            back_text = FONT_MEDIUM.render('Volver', True, WHITE)
+            surface.blit(back_text, back_text.get_rect(center=self.back_button.center))
+            return
+
+        pygame.draw.rect(surface, LIGHT_GRAY, self.list_rect)
+        pygame.draw.rect(surface, BLACK, self.list_rect, 2)
+        list_title = FONT_MEDIUM.render('Fiados activos', True, BLACK)
+        surface.blit(list_title, (self.list_rect.x + 10, self.list_rect.y + 8))
+
+        fiados = self.app.fair_manager.get_fiados()
+        visible_rows = max(1, (self.list_rect.h - 20) // 70)
+        visible_fiados = fiados[self.list_scroll:self.list_scroll + visible_rows]
+
+        self.fiado_click_areas = []
+        row_y = self.list_rect.y + 40
+        for entry in visible_fiados:
+            row_rect = pygame.Rect(self.list_rect.x + 8, row_y, self.list_rect.w - 16, 62)
+            selected = entry.get('id') == self.selected_fiado_id
+            pygame.draw.rect(surface, (200, 230, 255) if selected else WHITE, row_rect)
+            pygame.draw.rect(surface, BLACK, row_rect, 1)
+
+            name_txt = FONT_MEDIUM.render(entry.get('debtor_name', 'Sin nombre'), True, BLACK)
+            total_txt = FONT_SMALL.render(f'Total pendiente: ${entry.get("total", 0)}', True, BLACK)
+            date_txt = FONT_SMALL.render(entry.get('timestamp', ''), True, (80, 80, 80))
+            surface.blit(name_txt, (row_rect.x + 8, row_rect.y + 4))
+            surface.blit(total_txt, (row_rect.x + 8, row_rect.y + 28))
+            surface.blit(date_txt, (row_rect.x + 8, row_rect.y + 44))
+            self.fiado_click_areas.append((entry.get('id'), row_rect))
+            row_y += 70
+
+        if not fiados:
+            empty = FONT_MEDIUM.render('No hay fiados pendientes.', True, BLACK)
+            surface.blit(empty, (self.list_rect.x + 10, self.list_rect.y + 50))
+
+        pygame.draw.rect(surface, LIGHT_GRAY, self.detail_rect)
+        pygame.draw.rect(surface, BLACK, self.detail_rect, 2)
+        detail_title = FONT_MEDIUM.render('Detalle del fiado', True, BLACK)
+        surface.blit(detail_title, (self.detail_rect.x + 10, self.detail_rect.y + 8))
+
+        self.paid_click_areas = []
+        selected_entry = None
+        if self.selected_fiado_id:
+            for entry in fiados:
+                if entry.get('id') == self.selected_fiado_id:
+                    selected_entry = entry
+                    break
+
+        if selected_entry:
+            header = FONT_MEDIUM.render(
+                f'{selected_entry.get("debtor_name")} - Total: ${selected_entry.get("total", 0)}',
+                True,
+                BLACK
+            )
+            surface.blit(header, (self.detail_rect.x + 10, self.detail_rect.y + 35))
+            y = self.detail_rect.y + 70
+            items = selected_entry.get('items', [])
+            visible_items = max(1, (self.detail_rect.h - 90) // 52)
+            self.detail_scroll = max(0, min(self.detail_scroll, max(0, len(items) - visible_items)))
+            shown_items = items[self.detail_scroll:self.detail_scroll + visible_items]
+            for offset, item in enumerate(shown_items):
+                item_index = self.detail_scroll + offset
+                status = 'Pagado' if item.get('paid') else 'Pendiente'
+                line = (
+                    f'{item["qty"]}x {item["name"]} | ${item["unit_price"]} '
+                    f'| Chinamo: {item.get("chinamo_id", "-")} | {status}'
+                )
+                text = FONT_SMALL.render(line, True, BLACK)
+                surface.blit(text, (self.detail_rect.x + 10, y))
+
+                if not item.get('paid'):
+                    paid_rect = pygame.Rect(self.detail_rect.x + 10, y + 20, 88, 24)
+                    pygame.draw.rect(surface, GREEN, paid_rect)
+                    paid_txt = FONT_SMALL.render('Pagado', True, WHITE)
+                    surface.blit(paid_txt, paid_txt.get_rect(center=paid_rect.center))
+                    self.paid_click_areas.append((selected_entry.get('id'), item_index, paid_rect))
+                y += 52
+        else:
+            hint = FONT_MEDIUM.render('Selecciona un fiado para ver detalle.', True, BLACK)
+            surface.blit(hint, (self.detail_rect.x + 10, self.detail_rect.y + 45))
+
+        pygame.draw.rect(surface, RED, self.back_button)
+        back_text = FONT_MEDIUM.render('Volver', True, WHITE)
+        surface.blit(back_text, back_text.get_rect(center=self.back_button.center))
 
 class Credits_screen():
     def __init__(self, app):

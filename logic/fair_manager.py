@@ -8,17 +8,43 @@ DATA_DIR = Path('FairHub/data/storage')
 CHINAMOS_FILE = DATA_DIR / 'chinamos.json'
 SALES_HISTORY_FILE = DATA_DIR / 'sales_history.json'
 FAIR_DATA_FILE = DATA_DIR / 'fair_data.json'
+FIADOS_FILE = DATA_DIR / 'fiados.json'
 
 class Fair_manager():
     def __init__(self):
         self.chinamos = {}  # dict con ID como key y objeto Chinamo como value
         self.sales = []  # lista de objetos Sale
+        self.fiados = []  # deudas activas
 
     def create_chinamo(self, seller_name):
         chinamo_id = f'ATB{len(self.chinamos) + 1}'
         chinamo = Chinamo(seller_name, chinamo_id)
         self.chinamos[chinamo_id] = chinamo
         return chinamo_id
+
+    def remove_chinamo(self, chinamo_id):
+        if chinamo_id not in self.chinamos:
+            return False
+
+        del self.chinamos[chinamo_id]
+        Chinamo.products.pop(chinamo_id, None)
+        self.sales = [sale for sale in self.sales if sale.chinamo_id != chinamo_id]
+        return True
+
+    def remove_product_from_chinamo(self, chinamo_id, product_index):
+        if chinamo_id not in self.chinamos:
+            return False
+
+        chinamo_data = Chinamo.products.get(chinamo_id)
+        if not chinamo_data:
+            return False
+
+        products = chinamo_data.get('products', [])
+        if product_index < 0 or product_index >= len(products):
+            return False
+
+        products.pop(product_index)
+        return True
 
     def register_sale(self, chinamo_id, items):
         if chinamo_id not in self.chinamos:
@@ -27,6 +53,65 @@ class Fair_manager():
         self.sales.append(sale)
         self.update_fair_data()
         return sale
+
+    def debtor_name_exists(self, debtor_name):
+        debtor_name_norm = debtor_name.strip().lower()
+        return any(entry.get('debtor_name', '').strip().lower() == debtor_name_norm for entry in self.fiados)
+
+    def add_fiado(self, debtor_name, items, allow_existing=False):
+        debtor_name = debtor_name.strip()
+        if not debtor_name:
+            raise ValueError('El nombre del fiado es obligatorio')
+        existing_entry = next(
+            (entry for entry in self.fiados if entry.get('debtor_name', '').strip().lower() == debtor_name.lower()),
+            None
+        )
+        if existing_entry and not allow_existing:
+            raise ValueError('Ese nombre de fiado ya existe')
+
+        fiado_items = []
+        for item in items:
+            total_price = item['qty'] * item['unit_price']
+            fiado_items.append({
+                'chinamo_id': item['chinamo_id'],
+                'name': item['name'],
+                'qty': item['qty'],
+                'unit_price': item['unit_price'],
+                'total': total_price,
+                'paid': False
+            })
+
+        if existing_entry and allow_existing:
+            existing_entry['items'].extend(fiado_items)
+            existing_entry['total'] = sum(element['total'] for element in existing_entry['items'] if not element.get('paid'))
+            existing_entry['timestamp'] = strftime("%a, %d %b %Y %H:%M:%S")
+            return existing_entry
+
+        entry = {
+            'id': f"FIADO{len(self.fiados) + 1}",
+            'debtor_name': debtor_name,
+            'items': fiado_items,
+            'total': sum(element['total'] for element in fiado_items),
+            'timestamp': strftime("%a, %d %b %Y %H:%M:%S")
+        }
+        self.fiados.append(entry)
+        return entry
+
+    def get_fiados(self):
+        return self.fiados
+
+    def mark_fiado_item_paid(self, fiado_id, item_index):
+        for entry in self.fiados:
+            if entry.get('id') == fiado_id:
+                items = entry.get('items', [])
+                if item_index < 0 or item_index >= len(items):
+                    return False
+                items[item_index]['paid'] = True
+                entry['total'] = sum(item.get('total', 0) for item in items if not item.get('paid'))
+                if all(item.get('paid', False) for item in items):
+                    self.fiados = [fiado for fiado in self.fiados if fiado.get('id') != fiado_id]
+                return True
+        return False
 
     def get_chinamo_income(self, chinamo_id):
         total_income = 0
@@ -68,6 +153,7 @@ class Fair_manager():
             'total_sales': self.get_total_sales(),
             'total_fiados': self.get_total_fiados(),
             'total_bought': self.get_total_bought(),
+            'fiados_activos': len(self.fiados),
             'chinamo_totals': {cid: self.get_chinamo_stats(cid) for cid in self.chinamos},
             'top_chinamos': self.get_top_chinamos(),
             'last_updated': strftime("%a, %d %b %Y %H:%M:%S")
@@ -91,6 +177,9 @@ class Fair_manager():
         sales_data = [sale.to_dict() for sale in self.sales]
         with open(SALES_HISTORY_FILE, 'w', encoding='utf-8') as f:
             json.dump(sales_data, f, indent=4)
+
+        with open(FIADOS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(self.fiados, f, indent=4)
         
         # Actualizar estadísticas al guardar
         self.update_fair_data()
@@ -116,10 +205,19 @@ class Fair_manager():
                     for sale_dict in sales_data:
                         sale = Sale(sale_dict['chinamo_id'], sale_dict['items'])
                         sale.sale_type = sale_dict.get('type', 'bought')
+                        sale.debtor_name = sale_dict.get('debtor_name')
                         sale.timestamp = sale_dict.get('timestamp', sale.timestamp)
                         self.sales.append(sale)
         except (FileNotFoundError, json.JSONDecodeError):
             pass
+
+        # Cargar fiados activos
+        try:
+            if FIADOS_FILE.exists() and FIADOS_FILE.stat().st_size > 0:
+                with open(FIADOS_FILE, 'r', encoding='utf-8') as f:
+                    self.fiados = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            self.fiados = []
         
         # Actualizar estadísticas después de cargar datos
         self.update_fair_data()
