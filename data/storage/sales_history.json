@@ -3,111 +3,51 @@
         "chinamo_id": "ATB1",
         "items": [
             {
-                "name": "Pantalones",
+                "name": "Carne en Salsa",
                 "qty": 1,
-                "unit_price": 500.0,
+                "unit_price": 2500.0,
                 "type": "fiado"
             }
         ],
-        "total": 500.0,
-        "timestamp": "Mon, 20 Apr 2026 20:23:37",
+        "total": 2500.0,
+        "timestamp": "Tue, 21 Apr 2026 13:12:17",
         "type": "fiado",
-        "debtor_name": "Carlos"
+        "debtor_name": "Marcos",
+        "payment_method": "efectivo",
+        "payer_name": null
     },
     {
         "chinamo_id": "ATB2",
         "items": [
             {
-                "name": "Carne asada",
+                "name": "Arroz con Pollo",
                 "qty": 1,
-                "unit_price": 1500.0,
-                "type": "fiado"
-            }
-        ],
-        "total": 1500.0,
-        "timestamp": "Mon, 20 Apr 2026 20:23:37",
-        "type": "fiado",
-        "debtor_name": "Carlos"
-    },
-    {
-        "chinamo_id": "ATB1",
-        "items": [
-            {
-                "name": "Camisas",
-                "qty": 1,
-                "unit_price": 200.0,
-                "type": "fiado"
-            }
-        ],
-        "total": 200.0,
-        "timestamp": "Mon, 20 Apr 2026 20:25:11",
-        "type": "fiado",
-        "debtor_name": "Pedro"
-    },
-    {
-        "chinamo_id": "ATB1",
-        "items": [
-            {
-                "name": "Pantalones",
-                "qty": 1,
-                "unit_price": 500.0,
-                "type": "fiado"
-            }
-        ],
-        "total": 500.0,
-        "timestamp": "Mon, 20 Apr 2026 20:30:28",
-        "type": "fiado",
-        "debtor_name": "Carlos"
-    },
-    {
-        "chinamo_id": "ATB1",
-        "items": [
-            {
-                "name": "Camisas",
-                "qty": 1,
-                "unit_price": 200.0,
-                "type": "fiado"
-            }
-        ],
-        "total": 200.0,
-        "timestamp": "Mon, 20 Apr 2026 20:33:16",
-        "type": "fiado",
-        "debtor_name": "Carlos"
-    },
-    {
-        "chinamo_id": "ATB2",
-        "items": [
-            {
-                "name": "Carne asada",
-                "qty": 5,
-                "unit_price": 1500.0,
+                "unit_price": 2000.0,
                 "type": "bought"
             }
         ],
-        "total": 7500.0,
-        "timestamp": "Mon, 20 Apr 2026 20:34:07",
+        "total": 2000.0,
+        "timestamp": "Tue, 21 Apr 2026 13:12:28",
         "type": "bought",
-        "debtor_name": null
+        "debtor_name": null,
+        "payment_method": "sinpe",
+        "payer_name": "Andres"
     },
     {
-        "chinamo_id": "ATB1",
+        "chinamo_id": "ATB3",
         "items": [
             {
-                "name": "Camisas",
-                "qty": 8,
-                "unit_price": 200.0,
-                "type": "bought"
-            },
-            {
-                "name": "Pantalones",
-                "qty": 4,
-                "unit_price": 500.0,
+                "name": "Olla de carne",
+                "qty": 2,
+                "unit_price": 2000.0,
                 "type": "bought"
             }
         ],
-        "total": 3600.0,
-        "timestamp": "Mon, 20 Apr 2026 20:34:07",
+        "total": 4000.0,
+        "timestamp": "Tue, 21 Apr 2026 13:12:35",
         "type": "bought",
-        "debtor_name": null
+        "debtor_name": null,
+        "payment_method": "efectivo",
+        "payer_name": null
     }
 ]

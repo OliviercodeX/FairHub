@@ -577,7 +577,7 @@ class Buy_screen():
                     self.asking_payment_method = False
                     self.asking_sinpe_name = True
                     self.sinpe_name_input = ''
-                    return
+                    return #l
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 return
         elif self.asking_sinpe_name:
