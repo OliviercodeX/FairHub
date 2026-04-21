@@ -1,0 +1,23 @@
+{
+    "total_sales": 14000.0,
+    "total_fiados": 2900.0,
+    "total_bought": 11100.0,
+    "fiados_activos": 1,
+    "chinamo_totals": {
+        "ATB1": {
+            "total": 5000.0,
+            "fiados": 1400.0,
+            "bought": 3600.0
+        },
+        "ATB2": {
+            "total": 9000.0,
+            "fiados": 1500.0,
+            "bought": 7500.0
+        }
+    },
+    "top_chinamos": [
+        "ATB2",
+        "ATB1"
+    ],
+    "last_updated": "Mon, 20 Apr 2026 20:34:07"
+}

@@ -1,0 +1,113 @@
+[
+    {
+        "chinamo_id": "ATB1",
+        "items": [
+            {
+                "name": "Pantalones",
+                "qty": 1,
+                "unit_price": 500.0,
+                "type": "fiado"
+            }
+        ],
+        "total": 500.0,
+        "timestamp": "Mon, 20 Apr 2026 20:23:37",
+        "type": "fiado",
+        "debtor_name": "Carlos"
+    },
+    {
+        "chinamo_id": "ATB2",
+        "items": [
+            {
+                "name": "Carne asada",
+                "qty": 1,
+                "unit_price": 1500.0,
+                "type": "fiado"
+            }
+        ],
+        "total": 1500.0,
+        "timestamp": "Mon, 20 Apr 2026 20:23:37",
+        "type": "fiado",
+        "debtor_name": "Carlos"
+    },
+    {
+        "chinamo_id": "ATB1",
+        "items": [
+            {
+                "name": "Camisas",
+                "qty": 1,
+                "unit_price": 200.0,
+                "type": "fiado"
+            }
+        ],
+        "total": 200.0,
+        "timestamp": "Mon, 20 Apr 2026 20:25:11",
+        "type": "fiado",
+        "debtor_name": "Pedro"
+    },
+    {
+        "chinamo_id": "ATB1",
+        "items": [
+            {
+                "name": "Pantalones",
+                "qty": 1,
+                "unit_price": 500.0,
+                "type": "fiado"
+            }
+        ],
+        "total": 500.0,
+        "timestamp": "Mon, 20 Apr 2026 20:30:28",
+        "type": "fiado",
+        "debtor_name": "Carlos"
+    },
+    {
+        "chinamo_id": "ATB1",
+        "items": [
+            {
+                "name": "Camisas",
+                "qty": 1,
+                "unit_price": 200.0,
+                "type": "fiado"
+            }
+        ],
+        "total": 200.0,
+        "timestamp": "Mon, 20 Apr 2026 20:33:16",
+        "type": "fiado",
+        "debtor_name": "Carlos"
+    },
+    {
+        "chinamo_id": "ATB2",
+        "items": [
+            {
+                "name": "Carne asada",
+                "qty": 5,
+                "unit_price": 1500.0,
+                "type": "bought"
+            }
+        ],
+        "total": 7500.0,
+        "timestamp": "Mon, 20 Apr 2026 20:34:07",
+        "type": "bought",
+        "debtor_name": null
+    },
+    {
+        "chinamo_id": "ATB1",
+        "items": [
+            {
+                "name": "Camisas",
+                "qty": 8,
+                "unit_price": 200.0,
+                "type": "bought"
+            },
+            {
+                "name": "Pantalones",
+                "qty": 4,
+                "unit_price": 500.0,
+                "type": "bought"
+            }
+        ],
+        "total": 3600.0,
+        "timestamp": "Mon, 20 Apr 2026 20:34:07",
+        "type": "bought",
+        "debtor_name": null
+    }
+]
