@@ -29,6 +29,19 @@ class Fair_manager():
         del self.chinamos[chinamo_id]
         Chinamo.products.pop(chinamo_id, None)
         self.sales = [sale for sale in self.sales if sale.chinamo_id != chinamo_id]
+        cleaned_fiados = []
+        for fiado in self.fiados:
+            filtered_items = [
+                item for item in fiado.get('items', [])
+                if item.get('chinamo_id') != chinamo_id
+            ]
+            if not filtered_items:
+                continue
+            fiado['items'] = filtered_items
+            fiado['total'] = sum(item.get('total', 0) for item in filtered_items if not item.get('paid'))
+            if fiado['total'] > 0:
+                cleaned_fiados.append(fiado)
+        self.fiados = cleaned_fiados
         return True
 
     def remove_product_from_chinamo(self, chinamo_id, product_index):
@@ -53,6 +66,13 @@ class Fair_manager():
         self.sales.append(sale)
         self.update_fair_data()
         return sale
+
+    def remove_sale(self, sale_index):
+        if sale_index < 0 or sale_index >= len(self.sales):
+            return False
+        self.sales.pop(sale_index)
+        self.update_fair_data()
+        return True
 
     def debtor_name_exists(self, debtor_name):
         debtor_name_norm = debtor_name.strip().lower()
@@ -124,10 +144,21 @@ class Fair_manager():
         return sum(sale.total for sale in self.sales)
 
     def get_total_fiados(self):
-        return sum(sale.total for sale in self.sales if sale.sale_type == 'fiado')
+        return sum(entry.get('total', 0) for entry in self.fiados)
 
     def get_total_bought(self):
         return sum(sale.total for sale in self.sales if sale.sale_type == 'bought')
+
+    def get_total_sinpe(self):
+        return sum(
+            sale.total for sale in self.sales
+            if sale.sale_type == 'bought' and getattr(sale, 'payment_method', 'efectivo') == 'sinpe'
+        )
+
+    def get_sales(self, payment_method=None):
+        if payment_method is None:
+            return self.sales
+        return [sale for sale in self.sales if getattr(sale, 'payment_method', 'efectivo') == payment_method]
 
     def get_chinamo_stats(self, chinamo_id):
         total = 0
@@ -153,6 +184,7 @@ class Fair_manager():
             'total_sales': self.get_total_sales(),
             'total_fiados': self.get_total_fiados(),
             'total_bought': self.get_total_bought(),
+            'total_sinpe': self.get_total_sinpe(),
             'fiados_activos': len(self.fiados),
             'chinamo_totals': {cid: self.get_chinamo_stats(cid) for cid in self.chinamos},
             'top_chinamos': self.get_top_chinamos(),
@@ -206,6 +238,8 @@ class Fair_manager():
                         sale = Sale(sale_dict['chinamo_id'], sale_dict['items'])
                         sale.sale_type = sale_dict.get('type', 'bought')
                         sale.debtor_name = sale_dict.get('debtor_name')
+                        sale.payment_method = sale_dict.get('payment_method', 'efectivo')
+                        sale.payer_name = sale_dict.get('payer_name')
                         sale.timestamp = sale_dict.get('timestamp', sale.timestamp)
                         self.sales.append(sale)
         except (FileNotFoundError, json.JSONDecodeError):
