@@ -207,6 +207,7 @@ class Chinamo_screen():
                     self.app.fair_manager.create_chinamo(seller_name)
                     self.seller_input.set_text('')
                     self.app.fair_manager.save_data()
+
             elif event.ui_element == self.rename_button:
                 if self.selected_id:
                     new_name = self.rename_input.get_text().strip()
@@ -423,6 +424,9 @@ class Chinamo_screen():
         back_rect = back_text.get_rect(center=self.back_button.center)
         surface.blit(back_text, back_rect)
 
+        #dibujar antes para que no quede encima del la ventana emergente
+        self.ui_manager.draw_ui(surface)
+
         if self.confirm_delete_target:
             overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 170))
@@ -437,7 +441,7 @@ class Chinamo_screen():
             surface.blit(l2, (modal.x + 20, modal.y + 80))
             surface.blit(l3, (modal.x + 20, modal.y + 110))
 
-        self.ui_manager.draw_ui(surface)
+
 
 
 class Buy_screen():
