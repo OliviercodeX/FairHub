@@ -40,4 +40,4 @@ FONT_MEDIUM = pygame.font.SysFont("timesnewroman", 28)
 FONT_LARGE  = pygame.font.SysFont('timesnewroman' , 36)
 FONT_TITLE  = pygame.font.SysFont("timesnewroman", 43)
 
-ruta_image = Path(r'C:/Users/greiv/OneDrive/Documentos/Personal/Formaciones (Tecnologías)/Programación/Fairhub(Python+pygame)/FairHub/data/assets/image/church_brand.jpeg')
+ruta_image = Path(__file__).parent.parent / 'data' / 'assets' / 'image' / 'church_brand.jpeg'

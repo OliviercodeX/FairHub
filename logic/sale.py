@@ -10,6 +10,7 @@ class Sale():
         self.debtor_name = None
         self.payment_method = 'efectivo'
         self.payer_name = None
+        self.fiado_batch_id = None  # enlaza la venta con líneas en fiados.json al borrar del historial
         # historial de ventas: lista de diccionarios con keys: chinamo_id, items, total, timestamp, type
         self.data_history = []
 
@@ -46,7 +47,8 @@ class Sale():
             'type': self.sale_type,
             'debtor_name': self.debtor_name,
             'payment_method': self.payment_method,
-            'payer_name': self.payer_name
+            'payer_name': self.payer_name,
+            'fiado_batch_id': self.fiado_batch_id
         }
         return data_history
 

@@ -1,7 +1,9 @@
 from numpy.char import center
+import uuid
 import pygame, pygame_gui
 from pathlib import Path
 from ui.constants import *
+from ui.credits_content import CREDITS_PAGES
 
 class Splash():
     def __init__(self, app):
@@ -148,6 +150,9 @@ class Chinamo_screen():
         self.list_item_height = 55
         self.list_item_gap = 10
         self.list_top_padding = 55
+        self.product_scroll_offset = 0
+        self.product_row_height = 28
+        self.products_box_rect = pygame.Rect(0, 0, 0, 0)
         self.ui_manager = pygame_gui.UIManager((WIDTH, HEIGHT))
         self.confirm_delete_target = None
 
@@ -248,6 +253,7 @@ class Chinamo_screen():
                         if rect.collidepoint(event.pos):
                             self.selected_id = chinamo_id
                             self.showing_detail = True
+                            self.product_scroll_offset = 0
                             break
                 elif self.showing_detail and self.selected_id:
                     for product_index, delete_rect in self.product_delete_buttons:
@@ -264,6 +270,13 @@ class Chinamo_screen():
                 max_scroll = max(0, total_chinamos - visible_slots)
                 self.list_scroll_offset -= int(event.y)
                 self.list_scroll_offset = max(0, min(self.list_scroll_offset, max_scroll))
+            elif self.showing_detail and self.products_box_rect.collidepoint(pygame.mouse.get_pos()) and self.selected_id:
+                chinamo = self.app.fair_manager.chinamos.get(self.selected_id)
+                products = chinamo.products.get(self.selected_id, {}).get('products', []) if chinamo else []
+                visible_rows = max(1, (self.products_box_rect.h - 16) // self.product_row_height)
+                max_scroll = max(0, len(products) - visible_rows)
+                self.product_scroll_offset -= int(event.y)
+                self.product_scroll_offset = max(0, min(self.product_scroll_offset, max_scroll))
 
     def update(self):
         self.ui_manager.update(0.016)
@@ -275,6 +288,7 @@ class Chinamo_screen():
         if self.selected_id and self.selected_id not in self.app.fair_manager.chinamos:
             self.selected_id = None
             self.showing_detail = False
+            self.product_scroll_offset = 0
 
     def _get_visible_list_slots(self):
         available_height = self.list_panel_rect.h - self.list_top_padding - 20
@@ -384,37 +398,67 @@ class Chinamo_screen():
             products_title = FONT_MEDIUM.render('Productos disponibles:', True, BLACK)
             surface.blit(products_title, (detail_rect.x + 20, line_y + 10))
             line_y += 40
+
+            # Caja interna para productos con scroll y barra visible
+            self.products_box_rect = pygame.Rect(
+                detail_rect.x + 20,
+                line_y,
+                detail_rect.w - 40,
+                detail_rect.bottom - line_y - 20
+            )
+            pygame.draw.rect(surface, WHITE, self.products_box_rect)
+            pygame.draw.rect(surface, BLACK, self.products_box_rect, 1)
+
             if products:
-                for index, product in enumerate(products[:8]):
+                visible_rows = max(1, (self.products_box_rect.h - 16) // self.product_row_height)
+                max_scroll = max(0, len(products) - visible_rows)
+                self.product_scroll_offset = max(0, min(self.product_scroll_offset, max_scroll))
+                visible_products = products[self.product_scroll_offset:self.product_scroll_offset + visible_rows]
+
+                product_y = self.products_box_rect.y + 8
+                for offset, product in enumerate(visible_products):
+                    index = self.product_scroll_offset + offset
                     product_text = f'- {product["name"]} (${product["price_product"]})'
                     product_surf = FONT_SMALL.render(product_text, True, BLACK)
-                    surface.blit(product_surf, (detail_rect.x + 30, line_y))
+                    surface.blit(product_surf, (self.products_box_rect.x + 10, product_y))
 
-                    delete_rect = pygame.Rect(detail_rect.right - 42, line_y - 2, 24, 24)
+                    delete_rect = pygame.Rect(self.products_box_rect.right - 34, product_y - 2, 22, 22)
                     pygame.draw.rect(surface, RED, delete_rect)
                     delete_text = FONT_SMALL.render('X', True, WHITE)
                     delete_text_rect = delete_text.get_rect(center=delete_rect.center)
                     surface.blit(delete_text, delete_text_rect)
                     self.product_delete_buttons.append((index, delete_rect))
-                    line_y += 25
-                    if line_y > detail_rect.y + detail_rect.h - 40:
-                        break
+                    product_y += self.product_row_height
+
+                if len(products) > visible_rows:
+                    scroll_track = pygame.Rect(
+                        self.products_box_rect.right - 8,
+                        self.products_box_rect.y + 4,
+                        4,
+                        self.products_box_rect.h - 8
+                    )
+                    pygame.draw.rect(surface, (210, 210, 210), scroll_track)
+
+                    thumb_h = max(18, int(scroll_track.h * (visible_rows / len(products))))
+                    thumb_range = scroll_track.h - thumb_h
+                    thumb_y = scroll_track.y + int(thumb_range * (self.product_scroll_offset / max_scroll))
+                    thumb_rect = pygame.Rect(scroll_track.x, thumb_y, scroll_track.w, thumb_h)
+                    pygame.draw.rect(surface, (100, 100, 100), thumb_rect)
             else:
                 no_products = FONT_SMALL.render('Sin productos registrados.', True, BLACK)
-                surface.blit(no_products, (detail_rect.x + 20, line_y))
-                line_y += 30
+                surface.blit(no_products, (self.products_box_rect.x + 10, self.products_box_rect.y + 10))
 
-            sales = [sale for sale in self.app.fair_manager.sales if sale.chinamo_id == self.selected_id]
-            sales_title = FONT_MEDIUM.render('Ventas recientes:', True, BLACK)
-            surface.blit(sales_title, (detail_rect.x + 20, line_y + 10))
+            #sales = [sale for sale in self.app.fair_manager.sales if sale.chinamo_id == self.selected_id]
+            #sales_title = FONT_MEDIUM.render('Ventas recientes:', True, BLACK)
+            #surface.blit(sales_title, (detail_rect.x + 20, line_y + 10))
             line_y += 40
-            for sale in sales[-5:]:
-                sale_text = f'{sale.timestamp} | {sale.sale_type} | {sale.total}'
-                sale_surf = FONT_SMALL.render(sale_text, True, BLACK)
-                surface.blit(sale_surf, (detail_rect.x + 20, line_y))
-                line_y += 30
-                if line_y > detail_rect.y + detail_rect.h - 40:
-                    break
+            #for sale in sales[-5:]:
+             #   sale_text = f'{sale.timestamp} | {sale.sale_type} | {sale.total}'
+               # sale_surf = FONT_SMALL.render(sale_text, True, BLACK)
+               # surface.blit(sale_surf, (detail_rect.x + 20, line_y))
+               # line_y += 30
+                #if line_y > detail_rect.y + detail_rect.h - 40:
+                #    break
         else:
             fallback_text = FONT_MEDIUM.render('Selecciona un chinamo desde la lista.', True, BLACK)
             surface.blit(fallback_text, (detail_rect.x + 20, detail_rect.y + 70))
@@ -502,6 +546,20 @@ class Buy_screen():
             'qty': 1
         })
 
+    def _blit_text_with_caret(self, surface, font, text, x, y, color=BLACK, blink_ms=530):
+        """Dibuja el texto y una barra vertical que parpadea para indicar foco de escritura."""
+        text_surf = font.render(text, True, color)
+        surface.blit(text_surf, (x, y))
+        if (pygame.time.get_ticks() // blink_ms) % 2 == 0:
+            tw, th = text_surf.get_size()
+            pad = 1
+            pygame.draw.line(
+                surface, color,
+                (x + tw + pad, y + 4),
+                (x + tw + pad, y + th - 2),
+                2
+            )
+
     def _register_sale(self, sale_type, debtor_name=None, allow_existing_fiado=False, payment_method='efectivo', payer_name=None):
         if not self.carrito:
             self.confirmation_msj = 'El carrito está vacío.'
@@ -518,6 +576,7 @@ class Buy_screen():
                 'unit_price': item['unit_price']
             })
 
+        fiado_batch_id = str(uuid.uuid4()) if sale_type == 'fiado' else None
         for chinamo_id, items in grouped_items.items():
             sale = self.app.fair_manager.register_sale(chinamo_id, items)
             sale.categorize_sale(
@@ -526,6 +585,8 @@ class Buy_screen():
                 payment_method=payment_method,
                 payer_name=payer_name
             )
+            if fiado_batch_id:
+                sale.fiado_batch_id = fiado_batch_id
         if sale_type == 'fiado':
             fiado_items = []
             for item in self.carrito:
@@ -538,7 +599,8 @@ class Buy_screen():
             self.app.fair_manager.add_fiado(
                 debtor_name,
                 fiado_items,
-                allow_existing=allow_existing_fiado
+                allow_existing=allow_existing_fiado,
+                sale_batch_id=fiado_batch_id
             )
 
         self.app.fair_manager.save_data()
@@ -713,17 +775,17 @@ class Buy_screen():
             row_color = (230, 245, 230) if row_rect.collidepoint(pygame.mouse.get_pos()) else WHITE
             pygame.draw.rect(surface, row_color, row_rect)
             pygame.draw.rect(surface, BLACK, row_rect, 1)
-
-            name_text = FONT_MEDIUM.render(f'{product["name"]}  -  ${product["price"]}', True, BLACK)
-            meta_text = FONT_SMALL.render(f'{product["seller"]} | {product["chinamo_id"]}', True, (90, 90, 90))
+            #mostrar la lista de productos disponibles
+            name_text = FONT_SMALL.render(f'{product["name"]}  -  ${product["price"]}', True, BLACK)
+            meta_text = FONT_SMALL_ES.render(f'{product["seller"]} | {product["chinamo_id"]}', True, (90, 90, 90))
             surface.blit(name_text, (row_rect.x + 10, row_rect.y + 6))
             surface.blit(meta_text, (row_rect.x + 10, row_rect.y + 28))
 
             self.product_click_areas.append((product, row_rect))
             y += self.product_row_h
-
+        #si no hay producto mostrar este mensaje
         if not available_products:
-            empty_text = FONT_MEDIUM.render('No hay productos registrados \n en los chinamos.', True, BLACK)
+            empty_text = FONT_MEDIUM.render('No hay productos registrados \nen los chinamos.', True, BLACK)
             surface.blit(empty_text, (self.products_rect.x + 12, self.products_rect.y + 55))
 
         cart_visible = max(1, (self.carrito_rect.h - 45) // self.cart_row_h)
@@ -733,7 +795,7 @@ class Buy_screen():
 
         cart_y = self.carrito_rect.y + 40
         for offset, item in enumerate(visible_cart):
-            row_rect = pygame.Rect(self.carrito_rect.x + 8, cart_y, self.carrito_rect.w - 16, self.cart_row_h - 4)
+            row_rect = pygame.Rect(self.carrito_rect.x + 4, cart_y, self.carrito_rect.w - 8, self.cart_row_h)
             pygame.draw.rect(surface, WHITE, row_rect)
             pygame.draw.rect(surface, BLACK, row_rect, 1)
 
@@ -743,7 +805,7 @@ class Buy_screen():
                 True,
                 BLACK
             )
-            meta = FONT_SMALL.render(f'{item["chinamo_id"]}  Total:${total_line}', True, (90, 90, 90))
+            meta = FONT_SMALL_ES.render(f'{item["chinamo_id"]}  Total:${total_line}', True, (90, 90, 90))
             surface.blit(text, (row_rect.x + 6, row_rect.y + 2))
             surface.blit(meta, (row_rect.x + 6, row_rect.y + 18))
 
@@ -786,8 +848,9 @@ class Buy_screen():
             pygame.draw.rect(surface, WHITE, input_rect)
             pygame.draw.rect(surface, BLACK, input_rect, 2)
 
-            typed_text = FONT_MEDIUM.render(self.debtor_name_input, True, BLACK)
-            surface.blit(typed_text, (input_rect.x + 10, input_rect.y + 8))
+            self._blit_text_with_caret(
+                surface, FONT_MEDIUM, self.debtor_name_input, input_rect.x + 10, input_rect.y + 8
+            )
 
             help_text = FONT_SMALL.render('ENTER para confirmar | ESC para cancelar', True, BLACK)
             surface.blit(help_text, (modal_rect.x + 20, modal_rect.y + 125))
@@ -835,8 +898,9 @@ class Buy_screen():
             input_rect = pygame.Rect(modal_rect.x + 20, modal_rect.y + 65, modal_rect.w - 40, 40)
             pygame.draw.rect(surface, WHITE, input_rect)
             pygame.draw.rect(surface, BLACK, input_rect, 2)
-            typed_text = FONT_MEDIUM.render(self.sinpe_name_input, True, BLACK)
-            surface.blit(typed_text, (input_rect.x + 10, input_rect.y + 8))
+            self._blit_text_with_caret(
+                surface, FONT_MEDIUM, self.sinpe_name_input, input_rect.x + 10, input_rect.y + 8
+            )
             help_text = FONT_SMALL.render('ENTER para confirmar | ESC para cancelar', True, BLACK)
             surface.blit(help_text, (modal_rect.x + 20, modal_rect.y + 125))
 
@@ -853,7 +917,7 @@ class History_screen():
         self.cor_x = 200
         self.cor_y = 20
         self.back_button = pygame.Rect(20, HEIGHT - 70, 200, 50)
-        self.return_button = pygame.Rect(20, 80, 180, 45)
+        self.return_button = pygame.Rect(20, 80, 260, 45)
         self.fiados_button = pygame.Rect(WIDTH // 2 - 150, 200, 300, 55)
         self.general_button = pygame.Rect(WIDTH // 2 - 150, 275, 300, 55)
         self.sales_button = pygame.Rect(WIDTH // 2 - 150, 350, 300, 55)
@@ -1003,10 +1067,14 @@ class History_screen():
             surface.blit(FONT_MEDIUM.render('Historial general', True, WHITE), FONT_MEDIUM.render('Historial general', True, WHITE).get_rect(center=self.general_button.center))
             surface.blit(FONT_MEDIUM.render('Historial ventas', True, WHITE), FONT_MEDIUM.render('Historial ventas', True, WHITE).get_rect(center=self.sales_button.center))
             surface.blit(FONT_MEDIUM.render('Historial sinpes', True, WHITE), FONT_MEDIUM.render('Historial sinpes', True, WHITE).get_rect(center=self.sinpe_button.center))
+
+            pygame.draw.rect(surface, RED, self.back_button)
+            back_text = FONT_MEDIUM.render('Volver', True, WHITE)
+            surface.blit(back_text, back_text.get_rect(center=self.back_button.center))
             return
         else:
             pygame.draw.rect(surface, BLUE, self.return_button)
-            return_text = FONT_MEDIUM.render('Regresar', True, WHITE)
+            return_text = FONT_MEDIUM.render('Volver a historial', True, WHITE)
             surface.blit(return_text, return_text.get_rect(center=self.return_button.center))
 
         if self.active_view == 'general':
@@ -1199,16 +1267,54 @@ class Credits_screen():
     def __init__(self, app):
         self.app = app
         self.color = PURPLE
-        self.cor_x = 250
+        self.cor_x = 30
         self.cor_y = 20
+        self.back_button = pygame.Rect(20, HEIGHT - 70, 200, 50)
+        self.page_1_button = pygame.Rect(WIDTH - 220, 20, 90, 40)
+        self.page_2_button = pygame.Rect(WIDTH - 115, 20, 90, 40)
+        self.page = 1
+        self.line_height = 24
+        self.scroll_step = 2
+        self.scroll_offset = 0
+    
+    def _get_max_scroll(self, panel_rect, page_data):
+        content_top = panel_rect.y + 58
+        content_bottom = panel_rect.bottom - 12
+        visible_lines = max(1, (content_bottom - content_top) // self.line_height)
+        return max(0, len(page_data['lines']) - visible_lines)
     
     def handle_event(self, event):
+        page_key = 'guide' if self.page == 1 else 'motivation'
+        page_data = CREDITS_PAGES[page_key]
+        panel_rect = pygame.Rect(20, 80, WIDTH - 40, HEIGHT - 170)
+        max_scroll = self._get_max_scroll(panel_rect, page_data)
+
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 self.app.change_screen(Main_menu_screen(self.app))
+            elif event.key == pygame.K_1:
+                self.page = 1
+                self.scroll_offset = 0
+            elif event.key == pygame.K_2:
+                self.page = 2
+                self.scroll_offset = 0
+            elif event.key == pygame.K_DOWN:
+                self.scroll_offset = min(max_scroll, self.scroll_offset + self.scroll_step)
+            elif event.key == pygame.K_UP:
+                self.scroll_offset = max(0, self.scroll_offset - self.scroll_step)
         elif event.type == pygame.MOUSEBUTTONDOWN:
-                if exit_button.collidepoint(event.pos):
-                    self.app.running = False
+            if self.back_button.collidepoint(event.pos):
+                self.app.change_screen(Main_menu_screen(self.app))
+            elif self.page_1_button.collidepoint(event.pos):
+                self.page = 1
+                self.scroll_offset = 0
+            elif self.page_2_button.collidepoint(event.pos):
+                self.page = 2
+                self.scroll_offset = 0
+            elif event.button == 4:
+                self.scroll_offset = max(0, self.scroll_offset - 1)
+            elif event.button == 5:
+                self.scroll_offset = min(max_scroll, self.scroll_offset + 1)
 
     def update(self):
         
@@ -1216,6 +1322,44 @@ class Credits_screen():
 
     def draw(self, surface):
         surface.fill(self.color)
+        title_text = FONT_TITLE.render('Creditos', True, WHITE)
+        surface.blit(title_text, (self.cor_x, self.cor_y))
+
+        panel_rect = pygame.Rect(20, 80, WIDTH - 40, HEIGHT - 170)
+        pygame.draw.rect(surface, LIGHT_GRAY, panel_rect)
+        pygame.draw.rect(surface, BLACK, panel_rect, 2)
+
+        is_page_1 = self.page == 1
+        pygame.draw.rect(surface, GREEN if is_page_1 else DARK_GRAY, self.page_1_button)
+        pygame.draw.rect(surface, BLUE if not is_page_1 else DARK_GRAY, self.page_2_button)
+        surface.blit(FONT_SMALL.render('1', True, WHITE), FONT_SMALL.render('1', True, WHITE).get_rect(center=self.page_1_button.center))
+        surface.blit(FONT_SMALL.render('2', True, WHITE), FONT_SMALL.render('2', True, WHITE).get_rect(center=self.page_2_button.center))
+
+        page_key = 'guide' if is_page_1 else 'motivation'
+        page_data = CREDITS_PAGES[page_key]
+        page_title = FONT_MEDIUM.render(page_data['title'], True, BLACK)
+        surface.blit(page_title, (panel_rect.x + 16, panel_rect.y + 14))
+
+        max_scroll = self._get_max_scroll(panel_rect, page_data)
+        self.scroll_offset = max(0, min(self.scroll_offset, max_scroll))
+        visible_lines = page_data['lines'][self.scroll_offset:]
+
+        y = panel_rect.y + 58
+        content_bottom = panel_rect.bottom - 12
+        for line in visible_lines:
+            if y + self.line_height > content_bottom:
+                break
+            rendered = FONT_SMALL.render(line, True, BLACK)
+            surface.blit(rendered, (panel_rect.x + 20, y))
+            y += self.line_height
+
+        if max_scroll > 0:
+            hint_text = FONT_SMALL.render('Scroll: rueda o flechas arriba/abajo', True, BLACK)
+            surface.blit(hint_text, (panel_rect.x + 500, panel_rect.bottom ))
+
+        pygame.draw.rect(surface, RED, self.back_button)
+        back_text = FONT_MEDIUM.render('Volver', True, WHITE)
+        surface.blit(back_text, back_text.get_rect(center=self.back_button.center))
 
 
 class Create_chinamo_screen():

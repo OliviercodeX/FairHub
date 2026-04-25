@@ -4,7 +4,17 @@ import json
 from pathlib import Path
 from time import strftime
 
-DATA_DIR = Path('FairHub/data/storage')
+# ✅ DESPUÉS — guarda siempre junto al .exe
+import sys
+
+if getattr(sys, 'frozen', False):
+    # Está corriendo como .exe → usa la carpeta donde está el .exe
+    BASE_DIR = Path(sys.executable).parent
+else:
+    # Está corriendo en el IDE → usa la carpeta del proyecto
+    BASE_DIR = Path(__file__).parent.parent
+
+DATA_DIR = BASE_DIR / 'data' / 'storage'
 CHINAMOS_FILE = DATA_DIR / 'chinamos.json'
 SALES_HISTORY_FILE = DATA_DIR / 'sales_history.json'
 FAIR_DATA_FILE = DATA_DIR / 'fair_data.json'
@@ -67,9 +77,67 @@ class Fair_manager():
         self.update_fair_data()
         return sale
 
+    def _remove_fiado_contribution_from_sale(self, sale):
+        """Quita del libro de fiados lo asociado a esta venta (mismo checkout / datos legacy)."""
+        if sale.sale_type != 'fiado' or not sale.debtor_name:
+            return
+        debtor_norm = sale.debtor_name.strip().lower()
+        batch_id = getattr(sale, 'fiado_batch_id', None)
+        updated = []
+        for entry in self.fiados:
+            if entry.get('debtor_name', '').strip().lower() != debtor_norm:
+                updated.append(entry)
+                continue
+            items = entry.get('items', [])
+            use_batch = batch_id and any(
+                it.get('sale_batch_id') == batch_id and it.get('chinamo_id') == sale.chinamo_id
+                for it in items
+            )
+            if use_batch:
+                kept = [
+                    item for item in items
+                    if not (
+                        item.get('sale_batch_id') == batch_id
+                        and item.get('chinamo_id') == sale.chinamo_id
+                    )
+                ]
+            else:
+                keys_to_remove = {}
+                for it in sale.items:
+                    k = (sale.chinamo_id, it.get('name'), it.get('qty'), it.get('unit_price'))
+                    keys_to_remove[k] = keys_to_remove.get(k, 0) + 1
+                kept = []
+                for item in items:
+                    if item.get('sale_batch_id'):
+                        kept.append(item)
+                        continue
+                    k = (
+                        item.get('chinamo_id'),
+                        item.get('name'),
+                        item.get('qty'),
+                        item.get('unit_price'),
+                    )
+                    if keys_to_remove.get(k, 0) > 0:
+                        keys_to_remove[k] -= 1
+                        continue
+                    kept.append(item)
+            if not kept:
+                continue
+            entry['items'] = kept
+            entry['total'] = sum(
+                item.get('total', 0) for item in kept if not item.get('paid')
+            )
+            if all(item.get('paid', False) for item in kept):
+                continue
+            updated.append(entry)
+        self.fiados = updated
+
     def remove_sale(self, sale_index):
         if sale_index < 0 or sale_index >= len(self.sales):
             return False
+        sale = self.sales[sale_index]
+        if sale.sale_type == 'fiado':
+            self._remove_fiado_contribution_from_sale(sale)
         self.sales.pop(sale_index)
         self.update_fair_data()
         return True
@@ -78,7 +146,7 @@ class Fair_manager():
         debtor_name_norm = debtor_name.strip().lower()
         return any(entry.get('debtor_name', '').strip().lower() == debtor_name_norm for entry in self.fiados)
 
-    def add_fiado(self, debtor_name, items, allow_existing=False):
+    def add_fiado(self, debtor_name, items, allow_existing=False, sale_batch_id=None):
         debtor_name = debtor_name.strip()
         if not debtor_name:
             raise ValueError('El nombre del fiado es obligatorio')
@@ -92,14 +160,17 @@ class Fair_manager():
         fiado_items = []
         for item in items:
             total_price = item['qty'] * item['unit_price']
-            fiado_items.append({
+            row = {
                 'chinamo_id': item['chinamo_id'],
                 'name': item['name'],
                 'qty': item['qty'],
                 'unit_price': item['unit_price'],
                 'total': total_price,
                 'paid': False
-            })
+            }
+            if sale_batch_id:
+                row['sale_batch_id'] = sale_batch_id
+            fiado_items.append(row)
 
         if existing_entry and allow_existing:
             existing_entry['items'].extend(fiado_items)
@@ -241,6 +312,7 @@ class Fair_manager():
                         sale.payment_method = sale_dict.get('payment_method', 'efectivo')
                         sale.payer_name = sale_dict.get('payer_name')
                         sale.timestamp = sale_dict.get('timestamp', sale.timestamp)
+                        sale.fiado_batch_id = sale_dict.get('fiado_batch_id')
                         self.sales.append(sale)
         except (FileNotFoundError, json.JSONDecodeError):
             pass
