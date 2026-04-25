@@ -165,4 +165,4 @@ Active project under continuous improvement, focused on usability and reliable f
 
 ## Author
 
-Developed by the FairHub team.
+Developed by Mainor Martinez Sanchez Student of Instituto Tecnologico De Costa Rica.
