@@ -8,6 +8,9 @@ class Sale():
         self.timestamp = strftime("%a, %d %b %Y %H:%M:%S")
         self.sale_type = 'bought'
         self.debtor_name = None
+        self.payment_method = 'efectivo'
+        self.payer_name = None
+        self.fiado_batch_id = None  # enlaza la venta con líneas en fiados.json al borrar del historial
         # historial de ventas: lista de diccionarios con keys: chinamo_id, items, total, timestamp, type
         self.data_history = []
 
@@ -17,16 +20,20 @@ class Sale():
             total += item['qty'] * item['unit_price']
         return total
 
-    def categorize_sale(self, sale_type='bought', debtor_name=None):
+    def categorize_sale(self, sale_type='bought', debtor_name=None, payment_method='efectivo', payer_name=None):
         """Set the sale type and mark each item with the same type.
 
         Allowed values are 'bought' for immediate payment and 'fiado' for credit.
         """
         if sale_type not in ('bought', 'fiado'):
             raise ValueError("sale_type must be 'bought' or 'fiado'")
+        if payment_method not in ('efectivo', 'sinpe'):
+            raise ValueError("payment_method must be 'efectivo' or 'sinpe'")
 
         self.sale_type = sale_type
         self.debtor_name = debtor_name if sale_type == 'fiado' else None
+        self.payment_method = payment_method if sale_type == 'bought' else 'efectivo'
+        self.payer_name = payer_name if (sale_type == 'bought' and payment_method == 'sinpe') else None
         for item in self.items:
             item['type'] = sale_type
         return self.items
@@ -38,7 +45,10 @@ class Sale():
             'total': self.total,
             'timestamp': self.timestamp,
             'type': self.sale_type,
-            'debtor_name': self.debtor_name
+            'debtor_name': self.debtor_name,
+            'payment_method': self.payment_method,
+            'payer_name': self.payer_name,
+            'fiado_batch_id': self.fiado_batch_id
         }
         return data_history
 

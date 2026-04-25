@@ -33,10 +33,11 @@ TEXT_SECONDARY    = (180, 180, 180)
 WIDTH, HEIGHT = 800, 600
 
 #Fuentes y tamaños
+FONT_SMALL_ES = pygame.font.SysFont("timesnewroman", 12)
 FONT_SMALL  = pygame.font.SysFont("timesnewroman", 18)
 FONT_NORMAL = pygame.font.SysFont("timesnewroman", 22)
 FONT_MEDIUM = pygame.font.SysFont("timesnewroman", 28)
 FONT_LARGE  = pygame.font.SysFont('timesnewroman' , 36)
 FONT_TITLE  = pygame.font.SysFont("timesnewroman", 43)
 
-ruta_image = Path(r'C:/Users/greiv/OneDrive/Documentos/Personal/Formaciones (Tecnologías)/Programación/Fairhub(Python+pygame)/FairHub/data/assets/image/church_brand.jpeg')
+ruta_image = Path(__file__).parent.parent / 'data' / 'assets' / 'image' / 'church_brand.jpeg'
